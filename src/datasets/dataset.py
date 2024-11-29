@@ -13,24 +13,22 @@ class DatasetIterator(data.Dataset):
         self, dataset: data.Dataset, transformer, encoder: TEncoder
     ) -> None:
         self._dataset = dataset
-        self._transformation = transformation
+        self._transformer = transformer
         self._encoder = encoder
 
     def __getitem__(self, index):
         img, lbl = self._dataset[index]
-        img_, bboxes_, labels_ = self._transformation(
+        img, bboxes, labels = self._transformer(
             img, lbl["boxes"], lbl["labels"]
         )
-        lbl_encoded = self._encoder(bboxes_, labels_)
-        return img_, torch.from_numpy(lbl_encoded)
+        encoded_lbl = self._encoder.encode(bboxes, labels)
+        return img, torch.from_numpy(encoded_lbl)
 
     def __len__(self):
         return len(self._dataset)
 
-    def encode(self, width: int, height: int, encoder):
-        self._dataset = encoder(width, height, self._dataset)
-
-    def get_examples(self, batch_size: int = 10):
+    # FIX: iterator not working
+    def get_examples(self, *, batch_size: int = 10):
         return data.DataLoader(
             self._dataset, batch_size=batch_size, num_workers=2, shuffle=True
         )
