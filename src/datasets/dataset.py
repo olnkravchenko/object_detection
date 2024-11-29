@@ -4,7 +4,7 @@ import torch
 from torch.utils import data
 
 
-class Dataset(data.Dataset):
+class DatasetIterator(data.Dataset):
 
     def __init__(self, dataset: Iterable, transformation, encoder) -> None:
         self._dataset = dataset
