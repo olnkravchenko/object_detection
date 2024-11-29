@@ -1,12 +1,17 @@
-from typing import Iterable
+from typing import TypeVar
 
 import torch
+from datasets.encoders import Encoder
 from torch.utils import data
+
+TEncoder = TypeVar("Encoder", bound=Encoder)
 
 
 class DatasetIterator(data.Dataset):
 
-    def __init__(self, dataset: Iterable, transformation, encoder) -> None:
+    def __init__(
+        self, dataset: data.Dataset, transformer, encoder: TEncoder
+    ) -> None:
         self._dataset = dataset
         self._transformation = transformation
         self._encoder = encoder
