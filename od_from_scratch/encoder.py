@@ -1,4 +1,4 @@
-
+#encoder.py
 import numpy as np
 
 def gaussian_radius(det_size, min_overlap=0.7):
