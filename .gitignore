@@ -1,0 +1,5 @@
+__pycache__
+.idea
+.venv
+od_from_scratch/VOC
+od_from_scratch/model_checkpoints
