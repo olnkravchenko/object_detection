@@ -1,5 +1,10 @@
-# Python
+# Python folders and files
 __pycache__
+.venv
 
-# datasets
+# Folder for datasets
 tmp
+
+# IDE folders
+.idea
+.vscode
