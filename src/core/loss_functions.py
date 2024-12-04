@@ -5,9 +5,7 @@ import torch.nn as nn
 
 
 class CenternetTTFLoss(nn.Module):
-    def __init__(
-        self, class_num, down_ratio, out_height, out_width, loss_dict={}
-    ):
+    def __init__(self, class_num, down_ratio, out_height, out_width, loss_dict={}):
         super().__init__()
 
         cols = torch.arange(out_width)
@@ -36,9 +34,7 @@ class CenternetTTFLoss(nn.Module):
         print("loss_dict = {}".format(loss_dict))
         self.delta = 1e-5
 
-        self._losses = OrderedDict(
-            {k: 0.0 for k in ["loss_cls", "loss_box", "loss"]}
-        )
+        self._losses = OrderedDict({k: 0.0 for k in ["loss_cls", "loss_box", "loss"]})
 
     def get_box_coors(self, y_pred):
         """
@@ -89,10 +85,7 @@ class CenternetTTFLoss(nn.Module):
         y_pred = torch.clamp(y_pred, self.delta, 1.0 - self.delta)
         pos_loss = torch.log(y_pred) * torch.pow(1.0 - y_pred, 2.0) * pos_inds
         neg_loss = (
-            torch.log(1.0 - y_pred)
-            * torch.pow(y_pred, 2.0)
-            * neg_weights
-            * neg_inds
+            torch.log(1.0 - y_pred) * torch.pow(y_pred, 2.0) * neg_weights * neg_inds
         )
 
         _sum = pos_inds.sum()
@@ -185,14 +178,10 @@ class CenternetTTFLoss(nn.Module):
         elif self.reg_loss == "iou":
             coor_loss = self.reg_iou_loss(y_true[..., c:], y_pred[..., c:])
         else:
-            raise Exception(
-                "loss_params['reg_loss'] must be from the list : [l1, iou]"
-            )
+            raise Exception("loss_params['reg_loss'] must be from the list : [l1, iou]")
 
         self._losses["loss_cls"] = hm_loss
         self._losses["loss_box"] = coor_loss
-        self._losses["loss"] = (
-            self.lambda_cls * hm_loss + self.lambda_size * coor_loss
-        )
+        self._losses["loss"] = self.lambda_cls * hm_loss + self.lambda_size * coor_loss
 
         return self._losses

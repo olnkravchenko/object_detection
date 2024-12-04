@@ -33,9 +33,7 @@ class Backbone(nn.Module):
         self.layer12 = self.conv_bn_relu(s[4], s[4], False)
         self.layer13 = self.conv_bn_relu(s[4], s[4], True)  # stride 32
 
-    def conv_bn_relu(
-        self, input_num, output_num, max_pool=False, kernel_size=3
-    ):
+    def conv_bn_relu(self, input_num, output_num, max_pool=False, kernel_size=3):
         block = OrderedDict()
         block["conv_" + str(self.block_num)] = nn.Conv2d(
             input_num, output_num, kernel_size=kernel_size, stride=1, padding=1
@@ -45,9 +43,7 @@ class Backbone(nn.Module):
         )
         block["relu_" + str(self.block_num)] = nn.ReLU()
         if max_pool:
-            block["pool_" + str(self.block_num)] = nn.MaxPool2d(
-                kernel_size=2, stride=2
-            )
+            block["pool_" + str(self.block_num)] = nn.MaxPool2d(kernel_size=2, stride=2)
         self.block_num += 1
         return nn.Sequential(block)
 

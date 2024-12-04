@@ -27,9 +27,7 @@ class CenternetEncoder(Encoder):
             (self._out_height, self._out_width, self._n_classes),
             dtype=np.float32,
         )
-        coors = np.zeros(
-            (self._out_height, self._out_width, 4), dtype=np.float32
-        )
+        coors = np.zeros((self._out_height, self._out_width, 4), dtype=np.float32)
         for cls_id, bbox in zip(labels.data.numpy(), bboxes.data.numpy()):
             box_s = bbox / self._down_ratio
             h, w = box_s[3] - box_s[1], box_s[2] - box_s[0]

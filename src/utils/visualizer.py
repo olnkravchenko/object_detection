@@ -60,7 +60,5 @@ def __draw_a_rect(image, box, category_name, color=(255, 0, 0), line_width=2):
 def get_image_with_bboxes(img, boxes, labels):
     img_np = np.array(img)
     for cls_id, box in zip(labels.data.numpy(), boxes.data.numpy()):
-        __draw_a_rect(
-            image=img_np, category_name=PASCAL_CLASSES[cls_id - 1], box=box
-        )
+        __draw_a_rect(image=img_np, category_name=PASCAL_CLASSES[cls_id - 1], box=box)
     return img_np

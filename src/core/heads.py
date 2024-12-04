@@ -59,9 +59,7 @@ class Head(nn.Module):
             stride=1,
             padding=padding,
         )
-        block["bn_" + name] = nn.BatchNorm2d(
-            output_num, eps=1e-3, momentum=0.01
-        )
+        block["bn_" + name] = nn.BatchNorm2d(output_num, eps=1e-3, momentum=0.01)
         if activation == "relu":
             block["relu_" + name] = nn.ReLU()
         elif activation == "sigmoid":
