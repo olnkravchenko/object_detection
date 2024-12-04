@@ -5,6 +5,7 @@ from datasets.encoders import Encoder
 from torch.utils import data
 
 TEncoder = TypeVar("Encoder", bound=Encoder)
+BATCH_LIMIT = 32
 
 
 class DatasetIterator(data.Dataset):
@@ -17,7 +18,7 @@ class DatasetIterator(data.Dataset):
         self._encoder = encoder
 
     def __getitem__(self, index):
-        img, lbl = self._dataset[index]
+        img, lbl = self._dataset[index % BATCH_LIMIT]
         img, bboxes, labels = self._transformer(
             img, lbl["boxes"], lbl["labels"]
         )
@@ -25,9 +26,8 @@ class DatasetIterator(data.Dataset):
         return img, torch.from_numpy(encoded_lbl)
 
     def __len__(self):
-        return len(self._dataset)
+        return BATCH_LIMIT or len(self._dataset)
 
-    # FIX: iterator not working
     def get_examples(self, *, batch_size: int = 10):
         return data.DataLoader(
             self._dataset, batch_size=batch_size, num_workers=2, shuffle=True
