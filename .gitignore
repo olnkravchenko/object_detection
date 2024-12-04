@@ -11,4 +11,8 @@ od_from_scratch/*.xml
 .idea
 od_from_scratch/VOC
 __pycache__
+<<<<<<< HEAD
 >>>>>>> 9c326f1 (add od_from_scratch.py)
+=======
+od_from_scratch/model_checkpoints
+>>>>>>> 1e651a0 (modify gitignore)
