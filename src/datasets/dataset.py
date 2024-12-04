@@ -1,8 +1,9 @@
 from typing import TypeVar
 
 import torch
-from datasets.encoders import Encoder
 from torch.utils import data
+
+from datasets.encoders import Encoder
 
 TEncoder = TypeVar("Encoder", bound=Encoder)
 BATCH_LIMIT = 32

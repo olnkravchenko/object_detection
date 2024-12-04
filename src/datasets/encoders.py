@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+
 from utils import gaussian as gaus
 
 
