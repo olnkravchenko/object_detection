@@ -1,6 +1,7 @@
 # Python folders and files
 __pycache__
 .venv
+*.pt
 
 # Folder for datasets
 tmp
