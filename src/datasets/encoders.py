@@ -7,7 +7,7 @@ from utils import gaussian as gaus
 class Encoder(ABC):
 
     @abstractmethod
-    def encode(dataset):
+    def encode(self, bboxes, labels):
         pass
 
 
