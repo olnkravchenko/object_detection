@@ -1,9 +1,8 @@
 import torch.nn as nn
 
 from losses.centernet_ttf import CenternetTTFLoss
-from models.centernet_head import Head
 from models.centernet_backbone import Backbone
-
+from models.centernet_head import Head
 
 # todo (AA): move it somewhere
 input_height = input_width = 256

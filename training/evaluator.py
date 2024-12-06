@@ -1,6 +1,7 @@
-from copy import deepcopy
-import numpy as np
 import pdb
+from copy import deepcopy
+
+import numpy as np
 
 
 def calc_iou_individual(pred_box, gt_box):

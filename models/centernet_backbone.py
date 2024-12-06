@@ -1,6 +1,7 @@
+from collections import OrderedDict
+
 import numpy as np
 import torch.nn as nn
-from collections import OrderedDict
 
 
 class Backbone(nn.Module):

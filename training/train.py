@@ -1,10 +1,11 @@
-import torchvision
-from torch.utils import data
-import torchvision.transforms.v2 as transforms
 import torch
-from training.encoder import CenternetEncoder
-from models.centernet import input_height, input_width, ModelBuilder
+import torchvision
+import torchvision.transforms.v2 as transforms
+from torch.utils import data
+
 from data.dataset import Dataset
+from models.centernet import ModelBuilder, input_height, input_width
+from training.encoder import CenternetEncoder
 
 dataset_val = torchvision.datasets.VOCDetection(
     root="../VOC", year="2007", image_set="val", download=False
