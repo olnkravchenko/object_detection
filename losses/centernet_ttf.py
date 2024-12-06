@@ -6,7 +6,7 @@ import torch.nn as nn
 class CenternetTTFLoss(nn.Module):
     def __init__(self, class_num, down_ratio, out_height, out_width, loss_dict={}):
         super().__init__()
-        
+
         cols = torch.arange(out_width)
         for _ in range(out_height - 1):
             cols = torch.vstack((cols, torch.arange(out_width)))
@@ -18,9 +18,9 @@ class CenternetTTFLoss(nn.Module):
 
         self._cols = cols
         self._rows = rows
-        
+
         self._down_ratio = 4
-        
+
         self.loss_dict = loss_dict
         if self.loss_dict == None:
             self.loss_dict = {}
@@ -33,7 +33,7 @@ class CenternetTTFLoss(nn.Module):
         print("loss_dict = {}".format(loss_dict))
         self.delta = 1e-5
 
-        self._losses = OrderedDict({k: 0.0 for k in ['loss_cls', 'loss_box', 'loss']})
+        self._losses = OrderedDict({k: 0.0 for k in ["loss_cls", "loss_box", "loss"]})
 
     def get_box_coors(self, y_pred):
         """
@@ -56,22 +56,22 @@ class CenternetTTFLoss(nn.Module):
             self._cols = self._cols.to(y_pred.get_device())
             self._rows = self._rows.to(y_pred.get_device())
 
-        x1 = (self._down_ratio * self._cols - y_pred[..., 0])
-        y1 = (self._down_ratio * self._rows - y_pred[..., 1])
-        x2 = (self._down_ratio * self._cols + y_pred[..., 2])
-        y2 = (self._down_ratio * self._rows + y_pred[..., 3])
+        x1 = self._down_ratio * self._cols - y_pred[..., 0]
+        y1 = self._down_ratio * self._rows - y_pred[..., 1]
+        x2 = self._down_ratio * self._cols + y_pred[..., 2]
+        y2 = self._down_ratio * self._rows + y_pred[..., 3]
 
-        res = torch.stack([x1,y1,x2,y2])
+        res = torch.stack([x1, y1, x2, y2])
         res = res.permute((1, 2, 3, 0))
 
         return res
-    
+
     def focal_loss(self, y_true, y_pred):
         """
         :param y_true: encoded GT
         :param y_pred: detector output
         :return: float number which corrensponds to object class prediction error
-                 below is sum by row, col  
+                 below is sum by row, col
                  -sum[ log(y_pred) * (1 - y_pred)^2 ] / N if y_true=1
                  -sum[ log(1 - y_pred) *  y_pred^2 * (1 - y_true)^4 *] / N otherwise
                  where N is number of objects
@@ -82,8 +82,10 @@ class CenternetTTFLoss(nn.Module):
         neg_weights = torch.pow(1.0 - y_true, 4.0)
 
         y_pred = torch.clamp(y_pred, self.delta, 1.0 - self.delta)
-        pos_loss = torch.log(y_pred)*torch.pow(1.0 - y_pred, 2.0)*pos_inds
-        neg_loss = torch.log(1.0 - y_pred)*torch.pow(y_pred, 2.0)*neg_weights*neg_inds
+        pos_loss = torch.log(y_pred) * torch.pow(1.0 - y_pred, 2.0) * pos_inds
+        neg_loss = (
+            torch.log(1.0 - y_pred) * torch.pow(y_pred, 2.0) * neg_weights * neg_inds
+        )
 
         _sum = pos_inds.sum()
         num_pos = torch.maximum(_sum, torch.ones_like(_sum))
@@ -126,7 +128,7 @@ class CenternetTTFLoss(nn.Module):
         y_pred = torch.reshape(y_pred, (-1, 4))
 
         x1g, y1g, x2g, y2g = y_true[:, 0], y_true[:, 1], y_true[:, 2], y_true[:, 3]
-        x1, y1, x2, y2 = y_pred[:, 0],  y_pred[:, 1], y_pred[:, 2], y_pred[:, 3]
+        x1, y1, x2, y2 = y_pred[:, 0], y_pred[:, 1], y_pred[:, 2], y_pred[:, 3]
 
         xA = torch.maximum(x1g, x1)
         yA = torch.maximum(y1g, y1)
@@ -134,10 +136,16 @@ class CenternetTTFLoss(nn.Module):
         yB = torch.minimum(y2g, y2)
 
         _zero = torch.zeros_like(xA)
-        interArea = torch.maximum(_zero, (xB - xA + 1)) * torch.maximum(_zero, yB - yA + 1)
+        interArea = torch.maximum(_zero, (xB - xA + 1)) * torch.maximum(
+            _zero, yB - yA + 1
+        )
 
-        boxAArea = torch.maximum(_zero, (x2g - x1g + 1)) * torch.maximum(_zero, (y2g - y1g + 1))
-        boxBArea = torch.maximum(_zero, (x2 - x1 + 1)) * torch.maximum(_zero, (y2 - y1 + 1))
+        boxAArea = torch.maximum(_zero, (x2g - x1g + 1)) * torch.maximum(
+            _zero, (y2g - y1g + 1)
+        )
+        boxBArea = torch.maximum(_zero, (x2 - x1 + 1)) * torch.maximum(
+            _zero, (y2 - y1 + 1)
+        )
 
         iou = interArea / (boxAArea + boxBArea - interArea + self.delta)
 
@@ -166,8 +174,8 @@ class CenternetTTFLoss(nn.Module):
         else:
             raise Exception("loss_params['reg_loss'] must be from the list : [l1, iou]")
 
-        self._losses['loss_cls'] = hm_loss
-        self._losses['loss_box'] = coor_loss
-        self._losses['loss'] = self.lambda_cls*hm_loss + self.lambda_size*coor_loss
+        self._losses["loss_cls"] = hm_loss
+        self._losses["loss_box"] = coor_loss
+        self._losses["loss"] = self.lambda_cls * hm_loss + self.lambda_size * coor_loss
 
         return self._losses
