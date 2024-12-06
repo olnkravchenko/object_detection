@@ -2,6 +2,7 @@ import torch
 
 from torch.utils import data
 
+
 class Dataset(data.Dataset):
     def __init__(self, dataset, transformation, encoder):
         self._dataset = dataset
