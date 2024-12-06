@@ -60,5 +60,4 @@ for epoch in range(EPOCHS):
 
         print(loss_dict["loss"])
 
-# todo: we should define what we do with the result.
-torch.save(model.state_dict(), "/path/to/training/model/result")
+torch.save(model.state_dict(), "../models/checkpoints/pretrained_weights.pt")
