@@ -1,8 +1,8 @@
 import torch.nn as nn
 
 from losses.centernet_ttf import CenternetTTFLoss
-from centernet_head import Head
-from centernet_backbone import Backbone
+from models.centernet_head import Head
+from models.centernet_backbone import Backbone
 
 
 # todo (AA): move it somewhere
