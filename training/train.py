@@ -16,7 +16,7 @@ args = parser.parse_args()
 overfit = args.overfit
 
 dataset_val = torchvision.datasets.VOCDetection(
-    root="../VOC", year="2007", image_set="val", download=False
+    root="../VOC", year="2007", image_set="train", download=False
 )
 
 transform = transforms.Compose(
@@ -33,29 +33,32 @@ dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
 torch_dataset = Dataset(dataset=dataset_val, transformation=transform, encoder=encoder)
 
 training_data = torch_dataset
-lr = 0.001
+lr = 0.03
 desired_loss = 0.1
+batch_size = 32
 
 if overfit:
-    # randomly chosen pictures for model training
-    # trainingdata_indices = torch.tensor([955, 1025, 219, 66, 1344, 222, 865, 2317, 86, 1409])
-
+    # 10 randomly chosen pictures for model training
     trainingdata_indices = torch.randperm(len(torch_dataset))[:10]
     training_data = torch.utils.data.Subset(torch_dataset, trainingdata_indices)
-    lr = 0.01
+    lr = 0.05
     desired_loss = 1.0
-
+    batch_size = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = ModelBuilder(alpha=0.25).to(device)
 
 parameters = list(model.parameters())
 optimizer = torch.optim.Adam(parameters, lr=lr)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode="min", factor=0.2, patience=7, threshold=1e-4,
+    threshold_mode='rel', cooldown=1, min_lr=1e-6
+)
 
 model.train(True)
 
 batch_generator = torch.utils.data.DataLoader(
-    training_data, num_workers=4, batch_size=32, shuffle=True
+    training_data, num_workers=4, batch_size=batch_size, shuffle=True
 )
 
 epoch = 1
@@ -63,6 +66,8 @@ get_desired_loss = False
 
 while True:
     print("EPOCH {}:".format(epoch))
+
+    loss_dict = {}
     for _, data in enumerate(batch_generator):
         input_data, gt_data = data
         input_data = input_data.to(device).contiguous()
@@ -83,6 +88,8 @@ while True:
 
     if get_desired_loss:
         break
+
+    scheduler.step(loss_dict["loss"])
 
     epoch += 1
 
