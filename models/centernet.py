@@ -24,7 +24,10 @@ class ModelBuilder(nn.Module):
             # todo (AA): is this "4" below the down_ratio parameter?
             #   shouldn't we pass it as an argument to initializer?
             #   shouldn't we pass input_height and input_width as arguments too?
-            class_number, 4, input_height // 4, input_width // 4
+            class_number,
+            4,
+            input_height // 4,
+            input_width // 4,
         )
 
     def forward(self, x, gt=None):

@@ -1,4 +1,5 @@
 import argparse
+
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
@@ -9,7 +10,7 @@ from models.centernet import ModelBuilder, input_height, input_width
 from training.encoder import CenternetEncoder
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-o', '--overfit', action='store_true', help='overfit to 10 images')
+parser.add_argument("-o", "--overfit", action="store_true", help="overfit to 10 images")
 args = parser.parse_args()
 
 overfit = args.overfit
@@ -54,7 +55,7 @@ optimizer = torch.optim.Adam(parameters, lr=lr)
 model.train(True)
 
 batch_generator = torch.utils.data.DataLoader(
-    training_data, num_workers=4, batch_size=12
+    training_data, num_workers=4, batch_size=32, shuffle=True
 )
 
 epoch = 1
