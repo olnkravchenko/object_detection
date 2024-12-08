@@ -51,8 +51,14 @@ model = ModelBuilder(alpha=0.25).to(device)
 parameters = list(model.parameters())
 optimizer = torch.optim.Adam(parameters, lr=lr)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode="min", factor=0.2, patience=7, threshold=1e-4,
-    threshold_mode='rel', cooldown=1, min_lr=1e-6
+    optimizer,
+    mode="min",
+    factor=0.2,
+    patience=7,
+    threshold=1e-4,
+    threshold_mode="rel",
+    cooldown=1,
+    min_lr=1e-6,
 )
 
 model.train(True)
