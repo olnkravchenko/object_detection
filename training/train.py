@@ -43,9 +43,7 @@ def criteria_satisfied(_, current_epoch):
 
 
 if overfit:
-    # 10 randomly chosen pictures for model training
-    trainingdata_indices = torch.randperm(len(torch_dataset))[:10]
-    training_data = torch.utils.data.Subset(torch_dataset, trainingdata_indices)
+    training_data = torch.utils.data.Subset(torch_dataset, range(10))
     lr = 0.05
     batch_size = 10
 
