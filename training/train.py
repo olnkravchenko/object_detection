@@ -34,16 +34,26 @@ torch_dataset = Dataset(dataset=dataset_val, transformation=transform, encoder=e
 
 training_data = torch_dataset
 lr = 0.03
-desired_loss = 0.1
 batch_size = 32
+
+def criteria_satisfied(_, current_epoch):
+    if current_epoch >= 10000:
+        return True
+    return False
+
 
 if overfit:
     # 10 randomly chosen pictures for model training
     trainingdata_indices = torch.randperm(len(torch_dataset))[:10]
     training_data = torch.utils.data.Subset(torch_dataset, trainingdata_indices)
     lr = 0.05
-    desired_loss = 1.0
     batch_size = 10
+
+
+    def criteria_satisfied(current_loss, _):
+        if current_loss < 1.0:
+            return True
+        return False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = ModelBuilder(alpha=0.25).to(device)
@@ -88,11 +98,8 @@ while True:
         optimizer.step()
 
         print(loss_dict["loss"])
-        if loss_dict["loss"] < desired_loss:
-            get_desired_loss = True
-            break
 
-    if get_desired_loss:
+    if criteria_satisfied(loss_dict["loss"], epoch):
         break
 
     scheduler.step(loss_dict["loss"])
