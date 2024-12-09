@@ -36,6 +36,7 @@ training_data = torch_dataset
 lr = 0.03
 batch_size = 32
 
+
 def criteria_satisfied(_, current_epoch):
     if current_epoch >= 10000:
         return True
@@ -47,11 +48,11 @@ if overfit:
     lr = 0.05
     batch_size = 10
 
-
     def criteria_satisfied(current_loss, _):
         if current_loss < 1.0:
             return True
         return False
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = ModelBuilder(alpha=0.25).to(device)
