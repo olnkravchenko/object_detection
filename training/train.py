@@ -39,7 +39,7 @@ batch_size = 32
 if overfit:
     tag = "overfit"
     training_data = torch.utils.data.Subset(torch_dataset, range(10))
-    lr = 0.05
+    lr = 0.025
     batch_size = 10
     min_lr = 2e-3
     patience = 100
