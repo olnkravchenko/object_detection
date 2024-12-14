@@ -102,7 +102,7 @@ def main():
     summary(model, input_size=(3, 256, 256), batch_size=-1)
 
     # Decide whether to continue training or start new
-    CONTINUE_TRAINING = True  # Set to False to start a new training process
+    CONTINUE_TRAINING = True # Set to False to start a new training process
     CHECKPOINT_PATH = 'model_checkpoints/pascal_voc_final_weights.pt'
 
     # Load weights if continuing training
@@ -113,8 +113,8 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     # Training
-    EPOCHS = 1
-    steps_per_epoch = 50
+    EPOCHS = 10
+    steps_per_epoch = 500
 
     os.makedirs('model_checkpoints', exist_ok=True)
 
@@ -143,84 +143,7 @@ def main():
     torch.save(model.state_dict(), 'model_checkpoints/pascal_voc_final_weights.pt')
     print('Final weights saved')
 
-def main():
-    # Check GPU availability
-    print("GPU is available: ", torch.cuda.is_available())
 
-    # Load and prepare dataset
-    dataset_val = torchvision.datasets.VOCDetection(root="VOC", year='2007', image_set="val", download=True)
-    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
-
-    # Select first 30 indices
-    indices = list(range(30))
-    dataset_val = Subset(dataset_val, indices)
-    print(len(dataset_val))
-
-    # Initialize encoder and transform
-    encoder = CenternetEncoder(input_height, input_width)
-    transform = transforms.Compose([
-        transforms.Resize(size=(input_width, input_height)),
-        transforms.ToTensor()
-    ])
-
-    # Create custom dataset
-    torch_dataset = Dataset(
-        dataset=dataset_val,
-        transformation=transform,
-        encoder=encoder
-    )
-
-    # Create batch generator
-    batch_generator = torch.utils.data.DataLoader(
-        torch_dataset,
-        batch_size=5,
-        num_workers=0,
-        shuffle=False
-    )
-
-    # Model and training setup
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = ModelBuilder(alpha=0.25).to(device)
-    summary(model, input_size=(3, 256, 256), batch_size=-1)
-
-    CONTINUE_TRAINING = True  # Set to False to start a new training process
-    CHECKPOINT_PATH = 'model_checkpoints/pascal_voc_final_weights.pt'
-
-    # Load weights if continuing training
-    model, start_epoch = load_model_weights(model, CHECKPOINT_PATH, CONTINUE_TRAINING)
-
-    # Optimizer
-    lr = 0.001
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-    # Training
-    EPOCHS = 1
-    steps_per_epoch = 50
-
-    os.makedirs('model_checkpoints', exist_ok=True)
-
-    for epoch in range(EPOCHS):
-        print('EPOCH {}:'.format(epoch + 1))
-        model.train()
-
-        for step in range(steps_per_epoch):
-            # Cycle through the dataset
-            input, gt_data = next(iter(batch_generator))
-
-            input = input.to(device).contiguous()
-            gt_data = gt_data.to(device)
-            gt_data.requires_grad = False
-
-            loss_dict = model(input, gt=gt_data)
-            optimizer.zero_grad()
-            loss_dict['loss'].backward()
-            optimizer.step()
-
-            print(loss_dict['loss'])
-        torch.save(model.state_dict(), f'model_checkpoints/pascal_voc_epoch_{epoch + 1}_weights.pt')
-        print(f'Weights saved for epoch {epoch + 1}')
-    torch.save(model.state_dict(), 'model_checkpoints/pascal_voc_final_weights.pt')
-    print('Final weights saved')
 
 class Dataset(data.Dataset):
     def __init__(self, dataset, transformation, encoder):
