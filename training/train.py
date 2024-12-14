@@ -36,6 +36,7 @@ training_data = torch_dataset
 lr = 0.03
 batch_size = 32
 patience = 7
+image_set = 'train'
 
 
 def criteria_satisfied(_, current_epoch):
@@ -49,6 +50,7 @@ if overfit:
     training_data = torch.utils.data.Subset(torch_dataset, range(subset_len))
     batch_size = subset_len
     patience = 50
+    image_set = 'val'
 
 
     def criteria_satisfied(current_loss, _):
