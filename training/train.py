@@ -15,8 +15,10 @@ args = parser.parse_args()
 
 overfit = args.overfit
 
+Image_set = 'train'
+
 dataset_val = torchvision.datasets.VOCDetection(
-    root="VOC", year="2007", image_set="val", download=True
+    root="../VOC", year="2007", image_set=Image_set, download=True
 )
 
 transform = transforms.Compose(
@@ -36,7 +38,7 @@ training_data = torch_dataset
 lr = 0.03
 batch_size = 32
 patience = 7
-image_set = 'train'
+
 
 
 def criteria_satisfied(_, current_epoch):
@@ -50,7 +52,7 @@ if overfit:
     training_data = torch.utils.data.Subset(torch_dataset, range(subset_len))
     batch_size = subset_len
     patience = 50
-    image_set = 'val'
+    Image_set = 'val'
 
 
     def criteria_satisfied(current_loss, _):
@@ -58,12 +60,14 @@ if overfit:
             return True
         return False
 
+print(f"Selected image_set: {Image_set}")
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = ModelBuilder(alpha=0.25).to(device)
 
 parameters = list(model.parameters())
-optimizer = torch.optim.Adam(parameters, lr=0.05)
+optimizer = torch.optim.Adam(parameters, lr=lr)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
     mode="min",
@@ -111,4 +115,4 @@ while True:
 
     epoch += 1
 
-torch.save(model.state_dict(), "C:/Users/K/PycharmProjects/object_detection/models/checkpoints/pretrained_weights.pt")
+torch.save(model.state_dict(), "object_detection/models/checkpoints/pretrained_weights.pt")
