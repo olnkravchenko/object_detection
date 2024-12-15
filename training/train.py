@@ -115,4 +115,4 @@ while True:
 
     epoch += 1
 
-torch.save(model.state_dict(), "object_detection/models/checkpoints/pretrained_weights.pt")
+torch.save(model.state_dict(), "models/checkpoints/pretrained_weights.pt")
