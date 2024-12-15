@@ -43,21 +43,23 @@ if overfit:
     batch_size = 10
     min_lr = 2e-3
     patience = 100
-    stop_loss = 1.
+    stop_loss = 1.0
     stop_epoch = None
 else:
-    tag = ""    
+    tag = ""
     min_lr = 1e-5
     patience = 7
     stop_loss = None
     stop_epoch = 500
 
+
 def criteria_satisfied(current_loss, current_epoch):
     if stop_loss is not None and current_loss < 1.0:
         return True
     if stop_epoch is not None and current_epoch > stop_epoch:
-        return True        
+        return True
     return False
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = ModelBuilder(alpha=0.25).to(device)
