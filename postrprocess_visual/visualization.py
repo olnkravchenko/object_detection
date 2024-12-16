@@ -165,7 +165,7 @@ class ObjectDetectionVisualizer:
 
             # Convert to numpy for processing
             img_np = np.transpose(img.cpu().squeeze().numpy(), (1, 2, 0))
-            img_np = (img_np * 0.5) + 0.5  # Denormalize
+            
             img_np = np.clip(img_np, 0, 1)
 
             # Reconstruct bounding boxes
