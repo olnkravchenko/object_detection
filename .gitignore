@@ -4,6 +4,4 @@ __pycache__/
 models/checkpoints/
 visual_playbook/VOC/
 training/VOC/
-/od_from_scratch/model_checkpoints/pascal_voc_epoch_1_weights.pt
-/od_from_scratch/model_checkpoints/pascal_voc_epoch_2_weights.pt
-/od_from_scratch/model_checkpoints/pascal_voc_final_weights.pt
+/od_from_scratch/model_checkpoints/
