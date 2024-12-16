@@ -46,10 +46,7 @@ class ObjectDetectionVisualizer:
         self.down_ratio = down_ratio
         self.confidence_threshold = confidence_threshold
 
-        # Define checkpoint path if not provided
-        if checkpoint_path is None:
-            checkpoint_path = 'models/checkpoints/pretrained_weights.pt'
-        self.checkpoint_path = checkpoint_path
+        self.checkpoint_path = 'models/checkpoints/pretrained_weights.pt' if checkpoint_path is None else checkpoint_path
 
         # Initialize components
         self.model = None
