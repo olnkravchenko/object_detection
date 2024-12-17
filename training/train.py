@@ -54,7 +54,7 @@ if overfit:
     image_set = "val"
 
     def criteria_satisfied(current_loss, _):
-        if current_loss < 1.0:
+        if current_loss < 100.0:
             return True
         return False
 

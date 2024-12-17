@@ -3,4 +3,3 @@ __pycache__/
 .idea/
 models/checkpoints/
 training/VOC/
-/od_from_scratch/model_checkpoints/
