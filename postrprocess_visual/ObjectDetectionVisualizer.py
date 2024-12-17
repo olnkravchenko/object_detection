@@ -22,58 +22,33 @@ class ObjectDetectionVisualizer:
                  down_ratio=4,
                  checkpoint_path=None,
                  confidence_threshold=0.3):
-        """
-        Initialize object detection visualization components
 
-        Args:
-            input_height (int): Height of input image
-            input_width (int): Width of input image
-            down_ratio (int): Downsampling ratio
-            checkpoint_path (str): Path to model checkpoint
-            confidence_threshold (float): Minimum confidence for displaying detection
-        """
-        # Configure logging
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
-        # Device configuration
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.logger.info(f"Using device: {self.device}")
 
-        # Hyperparameters
         self.input_height = input_height
         self.input_width = input_width
         self.down_ratio = down_ratio
         self.confidence_threshold = confidence_threshold
 
-        self.checkpoint_path = 'models/checkpoints/pretrained_weights.pt' if checkpoint_path is None else checkpoint_path
+        self.checkpoint_path = '../models/checkpoints/pretrained_weights.pt' if checkpoint_path is None else checkpoint_path
 
-        # Initialize components
-        self.model = None
-        self.dataset = None
-        self.transform = None
-        self.encoder = None
-        self.postprocessor = None
+        self._setup()
 
-        # Initialize all components
-        self.setup()
-
-    def setup(self):
-        """Setup all detection components"""
+    def _setup(self):
         try:
-            # Prepare dataset
             self.dataset = self._prepare_dataset()
 
-            # Create transforms
             self.transform = self._create_transforms()
 
-            # Create encoder
             self.encoder = CenternetEncoder(
                 self.input_height,
                 self.input_width
             )
 
-            # Create postprocessor
             self.postprocessor = CenternetPostprocess(
                 n_classes=20,
                 width=self.input_width,
@@ -81,7 +56,6 @@ class ObjectDetectionVisualizer:
                 down_ratio=self.down_ratio
             ).to(self.device)
 
-            # Load trained model
             self.model = self._load_trained_model()
 
         except Exception as e:
@@ -89,14 +63,12 @@ class ObjectDetectionVisualizer:
             raise
 
     def _prepare_dataset(self):
-        """Prepare the validation dataset"""
         try:
-            # Load VOC dataset
             dataset_val = torchvision.datasets.VOCDetection(
                 root="VOC",
                 year='2007',
                 image_set="val",
-                download=True
+                download=False
             )
             dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
 
@@ -110,14 +82,12 @@ class ObjectDetectionVisualizer:
             raise
 
     def _create_transforms(self):
-        """Create image transforms"""
         return transforms.Compose([
             transforms.Resize(size=(self.input_width, self.input_height)),
             transforms.ToTensor()
         ])
 
     def _load_trained_model(self):
-        """Load the trained CenterNet model"""
         try:
             if not os.path.exists(self.checkpoint_path):
                 raise FileNotFoundError(f"Checkpoint file not found: {self.checkpoint_path}")
@@ -138,14 +108,12 @@ class ObjectDetectionVisualizer:
             raise
 
     def visualize_predictions(self, num_samples=5):
-        """Visualize model predictions"""
         plt.figure(figsize=(15, 3 * num_samples))
 
         for i in range(min(num_samples, len(self.dataset))):
             # Get original image and ground truth
             orig_img, orig_label = self.dataset[i]
 
-            # Apply transforms
             img, bboxes, labels = self.transform(
                 orig_img,
                 orig_label['boxes'],

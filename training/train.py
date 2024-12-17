@@ -18,7 +18,7 @@ overfit = args.overfit
 Image_set = 'train'
 
 dataset_val = torchvision.datasets.VOCDetection(
-    root="../VOC", year="2007", image_set=Image_set, download=True
+    root="../VOC", year="2007", image_set=Image_set, download=False
 )
 
 transform = transforms.Compose(
@@ -115,4 +115,4 @@ while True:
 
     epoch += 1
 
-torch.save(model.state_dict(), "models/checkpoints/pretrained_weights.pt")
+torch.save(model.state_dict(), "../models/checkpoints/pretrained_weights.pt")
