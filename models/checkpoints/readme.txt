@@ -1,0 +1,1 @@
+It is a placeholder for pretrained model weights
