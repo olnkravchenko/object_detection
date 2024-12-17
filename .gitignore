@@ -2,6 +2,5 @@ VOC/
 __pycache__/
 .idea/
 models/checkpoints/
-visual_playbook/VOC/
 training/VOC/
 /od_from_scratch/model_checkpoints/

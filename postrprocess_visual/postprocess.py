@@ -20,9 +20,11 @@ class CenternetPostprocess(nn.Module):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def forward(self, y_pred):
-        hm = y_pred[:, :self._n_classes, :, :]
-        coors = y_pred[:, self._n_classes: self._n_classes + 4, :, :]
-        return self._ctdet_decode(hm, coors, output_stride=self._down_ratio, k=self.detection_num)
+        hm = y_pred[:, : self._n_classes, :, :]
+        coors = y_pred[:, self._n_classes : self._n_classes + 4, :, :]
+        return self._ctdet_decode(
+            hm, coors, output_stride=self._down_ratio, k=self.detection_num
+        )
 
     def _nms(self, hm, kernel=3):
         hmax = F.max_pool2d(hm, kernel, stride=1, padding=kernel // 2)
@@ -54,14 +56,28 @@ class CenternetPostprocess(nn.Module):
             _inds = (_inds / cat).type(torch.int64)
             _xs = (_inds % width).type(torch.float32)
             _ys = (_inds / width).type(torch.int32).type(torch.float32)
-            _x1 = (output_stride * _xs - _coors[..., 0].gather(dim=1, index=_inds).type(torch.float32)) / self._width
-            _y1 = (output_stride * _ys - _coors[..., 1].gather(dim=1, index=_inds).type(torch.float32)) / self._height
-            _x2 = (output_stride * _xs + _coors[..., 2].gather(dim=1, index=_inds).type(torch.float32)) / self._width
-            _y2 = (output_stride * _ys + _coors[..., 3].gather(dim=1, index=_inds).type(torch.float32)) / self._height
+            _x1 = (
+                output_stride * _xs
+                - _coors[..., 0].gather(dim=1, index=_inds).type(torch.float32)
+            ) / self._width
+            _y1 = (
+                output_stride * _ys
+                - _coors[..., 1].gather(dim=1, index=_inds).type(torch.float32)
+            ) / self._height
+            _x2 = (
+                output_stride * _xs
+                + _coors[..., 2].gather(dim=1, index=_inds).type(torch.float32)
+            ) / self._width
+            _y2 = (
+                output_stride * _ys
+                + _coors[..., 3].gather(dim=1, index=_inds).type(torch.float32)
+            ) / self._height
             # _classes : integer class number
             # _x1, _y1, _x2, _y2 : x_min, y_min, x_max, y_max
             # _ys, _xs : integer row, col of the gaussian center
-            _detection = torch.stack([_classes, _scores, _x1, _y1, _x2, _y2, _ys, _xs], -1)
+            _detection = torch.stack(
+                [_classes, _scores, _x1, _y1, _x2, _y2, _ys, _xs], -1
+            )
             return _detection
 
         detections = _process_sample([hm_flat, coors_flat])
