@@ -114,6 +114,7 @@ while True:
 
     epoch += 1
 
+# saving model
 train_location = path.dirname(path.abspath(__file__))
 checkpoints_dir = path.join(train_location, "../models/checkpoints")
 tail = f"_{tag}" if tag else ""
