@@ -1,14 +1,13 @@
 import argparse
-
 from os import path
 
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
-from torch.utils import data
-
 from data.dataset import Dataset
 from models.centernet import ModelBuilder, input_height, input_width
+from torch.utils import data
+
 from training.encoder import CenternetEncoder
 
 parser = argparse.ArgumentParser()
