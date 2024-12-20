@@ -59,28 +59,24 @@ class MSCocoDataLoader(DataLoader):
     def load(self, transforms: Optional[Callable] = None):
         dataset_data = self.__urls[self.image_set]
         ann_file = Path(
-            self.dataset_path, f"/annotations/{dataset_data['ann_file']}"
+            self.dataset_path, "annotations", dataset_data["ann_file"]
         )
-        images_folder = self.dataset_path + f"/{self.image_set}2017"
-
-        if os.path.exists(self.dataset_path):
-            return CocoDetection(
-                root=images_folder, annFile=ann_file, transforms=transforms
-            )
+        images_folder = Path(self.dataset_path, f"{self.image_set}2017")
 
         # download images and annotations for the dataset
-        file_urls = [dataset_data["annotations"], dataset_data["images"]]
-        for url in file_urls:
-            print(f"\t\tDownloading {self.image_set}...")
+        if not os.path.exists(self.dataset_path):
+            file_urls = [dataset_data["annotations"], dataset_data["images"]]
+            for url in file_urls:
+                print(f"\t\tDownloading {self.image_set}...")
 
-            download_file(url, self.dataset_path)
-            unzip_archive(self.dataset_path, self.dataset_path)
+                download_file(url, self.dataset_path)
+                unzip_archive(self.dataset_path, self.dataset_path)
 
-            print(f"\t\t{self.image_set} dataset is downloaded")
+                print(f"\t\t{self.image_set} dataset is downloaded")
 
-            return CocoDetection(
-                root=images_folder, annFile=ann_file, transforms=transforms
-            )
+        return CocoDetection(
+            root=images_folder, annFile=ann_file, transforms=transforms
+        )
 
 
 class CustomDataLoader(DataLoader):
