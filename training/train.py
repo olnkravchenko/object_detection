@@ -1,5 +1,7 @@
 import argparse
 
+from os import path
+
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
@@ -113,4 +115,8 @@ while True:
 
     epoch += 1
 
-torch.save(model.state_dict(), f"../models/checkpoints/pretrained_weights_{tag}.pt")
+train_location = path.dirname(path.abspath(__file__))
+checkpoints_dir = path.join(train_location, "../models/checkpoints")
+tail = f"_{tag}" if tag else ""
+checkpoint_filename = path.join(checkpoints_dir, f"pretrained_weights{tail}.pt")
+torch.save(model.state_dict(), checkpoint_filename)
