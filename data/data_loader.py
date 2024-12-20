@@ -62,3 +62,9 @@ class MSCocoDataLoader(DataLoader):
             download_file(url, self.dataset_path)
             unzip_archive(self.dataset_path, self.dataset_path)
             # TODO: wrap into CocoDetection
+
+
+class CustomDataLoader(DataLoader):
+    # TODO: implement, find corresponding Detection class
+    def load(self):
+        pass
