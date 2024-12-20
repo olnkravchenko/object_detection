@@ -4,10 +4,10 @@ from os import path
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
-from data.dataset import Dataset
-from models.centernet import ModelBuilder, input_height, input_width
 from torch.utils import data
 
+from data.dataset import Dataset
+from models.centernet import ModelBuilder, input_height, input_width
 from training.encoder import CenternetEncoder
 
 parser = argparse.ArgumentParser()
@@ -114,7 +114,6 @@ while True:
 
     epoch += 1
 
-# saving model
 train_location = path.dirname(path.abspath(__file__))
 checkpoints_dir = path.join(train_location, "../models/checkpoints")
 tail = f"_{tag}" if tag else ""
