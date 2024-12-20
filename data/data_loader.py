@@ -40,18 +40,27 @@ class MSCocoDataLoader(DataLoader):
         "train": {
             "annotations": "http://images.cocodataset.org/annotations/annotations_trainval2017.zip",
             "images": "http://images.cocodataset.org/zips/train2017.zip",
+            "ann_file": "instances_train2017.json",
         },
         "val": {
             "annotations": "http://images.cocodataset.org/annotations/annotations_trainval2017.zip",
             "images": "http://images.cocodataset.org/zips/val2017.zip",
+            "ann_file": "instances_val2017.json",
         },
         "test": {
             "annotations": "http://images.cocodataset.org/annotations/image_info_test2017.zip",
             "images": "http://images.cocodataset.org/zips/test2017.zip",
+            "ann_file": "image_info_test2017.json",
         },
     }
 
-    def load(self):
+    def load(self, transforms: Optional[Callable] = None):
+        dataset_data = self.__urls[self.image_set]
+        ann_file = Path(
+            self.dataset_path, f"/annotations/{dataset_data['ann_file']}"
+        )
+        images_folder = self.dataset_path + f"/{self.image_set}2017"
+
         if os.path.exists(self.dataset_path):
             # TODO: wrap into CocoDetection
             return
