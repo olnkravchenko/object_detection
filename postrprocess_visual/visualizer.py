@@ -82,7 +82,7 @@ def visualize_heatmap(heatmap):
     return colored_heatmap
 
 
-def combine_visualizations(image, boxes, labels, heatmaps, alpha : float = 0.7):
+def combine_visualizations(image, boxes, labels, heatmaps, alpha: float = 0.7):
     """
     Combine original image, bounding boxes, and heatmaps into a single visualization
     Args:
