@@ -1,9 +1,11 @@
 import zipfile
+from pathlib import Path
 
 import requests
 
 
-def download_file(url: str, dst_path: str):
+def download_file(url: str, dst_folder: str):
+    dst_path = Path(dst_folder, url.split("/")[-1])
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(dst_path, "wb") as f:
