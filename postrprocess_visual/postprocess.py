@@ -77,21 +77,17 @@ class CenternetPostprocess(nn.Module):
         Returns:
             torch.Tensor: Detected objects with [class_id, score, x_min, y_min, x_max, y_max]
         """
-        # Apply non-maximum suppression
         heatmaps = self._non_maximum_suppression(heatmaps)
 
-        # Permute dimensions for processing
         heatmaps = heatmaps.permute(0, 2, 3, 1)
         coordinates = coordinates.permute(0, 2, 3, 1)
 
-        # Extract shape information
         batch_size, width, num_classes = (
             heatmaps.shape[0],
             heatmaps.shape[2],
             heatmaps.shape[3],
         )
 
-        # Flatten heatmaps and coordinates
         heatmaps_flat = torch.reshape(heatmaps, (batch_size, -1))
         coordinates_flat = torch.reshape(
             coordinates, (coordinates.shape[0], -1, coordinates.shape[-1])
@@ -166,7 +162,6 @@ class CenternetPostprocess(nn.Module):
             + coordinates_flat[..., 3].gather(dim=1, index=indices).type(torch.float32)
         ) / self._height
 
-        # Stack final detection tensor
         detections = torch.stack([classes, scores, x1, y1, x2, y2, ys, xs], dim=-1)
 
         return detections

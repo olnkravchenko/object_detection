@@ -15,10 +15,11 @@ args = parser.parse_args()
 
 overfit = args.overfit
 
-image_set = "train"
+
+image_set = "val" if overfit else "train"
 
 dataset_val = torchvision.datasets.VOCDetection(
-    root="../VOC", year="2007", image_set=image_set, download=False
+    root="../VOC", year="2007", image_set=image_set, download=True
 )
 
 transform = transforms.Compose(
@@ -38,6 +39,7 @@ training_data = torch_dataset
 lr = 0.03
 batch_size = 32
 patience = 7
+min_lr = 1e-3
 
 
 def criteria_satisfied(_, current_epoch):
@@ -50,11 +52,12 @@ if overfit:
     subset_len = 10
     training_data = torch.utils.data.Subset(torch_dataset, range(subset_len))
     batch_size = subset_len
+    lr = 5e-2
     patience = 50
-    image_set = "val"
+    min_lr = 1e-3
 
     def criteria_satisfied(current_loss, _):
-        if current_loss < 100.0:
+        if current_loss < 1.0:
             return True
         return False
 
@@ -70,12 +73,12 @@ optimizer = torch.optim.Adam(parameters, lr=lr)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
     mode="min",
-    factor=0.1,
+    factor=0.5,
     patience=patience,
     threshold=1e-4,
     threshold_mode="rel",
     cooldown=1,
-    min_lr=1e-2,
+    min_lr=min_lr,
 )
 
 model.train(True)
