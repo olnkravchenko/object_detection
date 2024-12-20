@@ -5,22 +5,21 @@ from torchvision.datasets import CocoDetection, VisionDataset, VOCDetection
 from utils.io_utils import download_file, unzip_archive
 
 
-class DataLoader(VisionDataset):
-    # TODO: add initialization from the VisionDataset
+class DataLoader:
     def __init__(self, dataset_path: str, image_set: str = None):
         self.image_set = "train" if image_set is None else image_set
         self.dataset_path = dataset_path
 
     @abstractmethod
-    def load(self):
+    def load(self, transforms: Optional[Callable] = None) -> VisionDataset:
         """
         Loads data and returns pytorch VisionDataset
         """
 
 
-class PascalVOCDataLoader(DataLoader, VOCDetection):
+class PascalVOCDataLoader(DataLoader):
 
-    def load(self):
+    def load(self, transforms: Optional[Callable] = None):
         """
         The dataset is automatically downloaded if `dataset_path` does not exist
         """
@@ -31,6 +30,7 @@ class PascalVOCDataLoader(DataLoader, VOCDetection):
             year="2007",
             image_set=self.image_set,
             download=is_download,
+            transforms=transforms,
         )
 
 
