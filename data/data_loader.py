@@ -2,6 +2,7 @@ import os
 from abc import abstractmethod
 
 from torchvision.datasets import CocoDetection, VisionDataset, VOCDetection
+from utils.io_utils import download_file, unzip_archive
 
 
 class DataLoader(VisionDataset):
@@ -33,8 +34,31 @@ class PascalVOCDataLoader(DataLoader, VOCDetection):
         )
 
 
-class CocoDataLoader(DataLoader):
+class MSCocoDataLoader(DataLoader):
 
-    # TODO: implement
+    __urls = {
+        "train": {
+            "annotations": "http://images.cocodataset.org/annotations/annotations_trainval2017.zip",
+            "images": "http://images.cocodataset.org/zips/train2017.zip",
+        },
+        "val": {
+            "annotations": "http://images.cocodataset.org/annotations/annotations_trainval2017.zip",
+            "images": "http://images.cocodataset.org/zips/val2017.zip",
+        },
+        "test": {
+            "annotations": "http://images.cocodataset.org/annotations/image_info_test2017.zip",
+            "images": "http://images.cocodataset.org/zips/test2017.zip",
+        },
+    }
+
     def load(self):
-        pass
+        if os.path.exists(self.dataset_path):
+            # TODO: wrap into CocoDetection
+            return
+
+        urls = self.__urls[self.image_set].items()
+        for name, url in urls:
+            print(f"Downloading {name}...")
+            download_file(url, self.dataset_path)
+            unzip_archive(self.dataset_path, self.dataset_path)
+            # TODO: wrap into CocoDetection
