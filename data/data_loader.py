@@ -1,5 +1,7 @@
 import os
 from abc import abstractmethod
+from pathlib import Path
+from typing import Callable, Optional
 
 from torchvision.datasets import CocoDetection, VisionDataset, VOCDetection
 from utils.io_utils import download_file, unzip_archive
@@ -62,15 +64,23 @@ class MSCocoDataLoader(DataLoader):
         images_folder = self.dataset_path + f"/{self.image_set}2017"
 
         if os.path.exists(self.dataset_path):
-            # TODO: wrap into CocoDetection
-            return
+            return CocoDetection(
+                root=images_folder, annFile=ann_file, transforms=transforms
+            )
 
-        urls = self.__urls[self.image_set].items()
-        for name, url in urls:
-            print(f"Downloading {name}...")
+        # download images and annotations for the dataset
+        file_urls = [dataset_data["annotations"], dataset_data["images"]]
+        for url in file_urls:
+            print(f"\t\tDownloading {self.image_set}...")
+
             download_file(url, self.dataset_path)
             unzip_archive(self.dataset_path, self.dataset_path)
-            # TODO: wrap into CocoDetection
+
+            print(f"\t\t{self.image_set} dataset is downloaded")
+
+            return CocoDetection(
+                root=images_folder, annFile=ann_file, transforms=transforms
+            )
 
 
 class CustomDataLoader(DataLoader):
