@@ -105,7 +105,7 @@ while True:
 
         optimizer.step()
         loss = loss_dict["loss"].item()
-        print(f"Batch {i}, loss={loss}, lr={scheduler.get_last_lr()}")
+        print(f"Epoch {epoch}, batch {i}, loss={loss:.3f}, lr={scheduler.get_last_lr()}")
 
     if criteria_satisfied(loss, epoch):
         break
