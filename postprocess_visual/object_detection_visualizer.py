@@ -5,19 +5,17 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torchvision
-from torch.utils.data import Subset
 from torchvision.transforms import v2 as transforms
 
 from models.centernet import ModelBuilder
-from postrprocess_visual.postprocess import CenternetPostprocess
-from postrprocess_visual.visualizer import PASCAL_CLASSES
-from training.encoder import CenternetEncoder
+from postprocess_visual.postprocess import CenternetPostprocess
+from postprocess_visual.visualizer import PASCAL_CLASSES
 
 
 class ObjectDetectionVisualizer:
     def __init__(
         self,
+        dataset,
         input_height=256,
         input_width=256,
         down_ratio=4,
@@ -27,6 +25,7 @@ class ObjectDetectionVisualizer:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
+        self.dataset = dataset
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.logger.info(f"Using device: {self.device}")
 
@@ -45,9 +44,7 @@ class ObjectDetectionVisualizer:
 
     def _setup(self):
         try:
-            self.dataset = self._prepare_dataset()
             self.transform = self._create_transforms()
-            self.encoder = CenternetEncoder(self.input_height, self.input_width)
             self.postprocessor = CenternetPostprocess(
                 n_classes=20,
                 width=self.input_width,
@@ -59,26 +56,12 @@ class ObjectDetectionVisualizer:
             self.logger.error(f"Error setting up components: {e}")
             raise
 
-    def _prepare_dataset(self):
-        try:
-            dataset_val = torchvision.datasets.VOCDetection(
-                root="../VOC", year="2007", image_set="val", download=False
-            )
-            dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(
-                dataset_val
-            )
-            indices = range(10)
-            dataset_val = Subset(dataset_val, indices)
-            return dataset_val
-        except Exception as e:
-            self.logger.error(f"Error preparing dataset: {e}")
-            raise
-
     def _create_transforms(self):
         return transforms.Compose(
             [
-                transforms.Resize(size=(self.input_width, self.input_height)),
-                transforms.ToTensor(),
+                # transforms.Resize(size=(self.input_width, self.input_height)),
+                transforms.ToImage(),
+                transforms.ToDtype(torch.float32, scale=True),
             ]
         )
 
@@ -126,13 +109,9 @@ class ObjectDetectionVisualizer:
         heatmap_np = (heatmap_np - heatmap_np.min()) / (
             heatmap_np.max() - heatmap_np.min() + 1e-8
         )
-        heatmap_resized = cv2.resize(
-            heatmap_np,
-            (self.input_width, self.input_height),
-            interpolation=cv2.INTER_LINEAR,
-        )
+
         colored_heatmap = cv2.applyColorMap(
-            (heatmap_resized * 255).astype(np.uint8), cv2.COLORMAP_JET
+            (heatmap_np * 255).astype(np.uint8), cv2.COLORMAP_JET
         )
         return cv2.cvtColor(colored_heatmap, cv2.COLOR_BGR2RGB)
 
@@ -167,14 +146,9 @@ class ObjectDetectionVisualizer:
             plt.text(0.5, 0.5, "No detections", ha="center", va="center")
         plt.tight_layout()
 
-    def visualize_predictions(self, num_samples=5):
-        self.num_samples = min(num_samples, len(self.dataset))
-
-        for i in range(self.num_samples):
-            orig_img, orig_label = self.dataset[i]
-            img, bboxes, labels = self.transform(
-                orig_img, orig_label["boxes"], orig_label["labels"]
-            )
+    def visualize_predictions(self):
+        for i, orig_img in enumerate(self.dataset):
+            img = self.transform(orig_img)
             img = img.unsqueeze(0).to(self.device)
 
             with torch.no_grad():
@@ -184,9 +158,7 @@ class ObjectDetectionVisualizer:
             colored_heatmap = self._get_heatmap_visualization(heatmaps)
             detections = self.postprocessor(pred)
 
-            img_np = np.transpose(img.cpu().squeeze().numpy(), (1, 2, 0))
-            img_np = np.clip(img_np, 0, 1)
-            img_with_predictions = img_np.copy()
+            img_np = np.asarray(orig_img)
 
             pred_boxes, pred_labels, pred_scores = self._process_detections(
                 detections, self.input_height, self.input_width
@@ -194,7 +166,7 @@ class ObjectDetectionVisualizer:
 
             for box, label, score in zip(pred_boxes, pred_labels, pred_scores):
                 cv2.rectangle(
-                    img_with_predictions,
+                    img_np,
                     (box[0], box[1]),
                     (box[2], box[3]),
                     (0, 1, 0),
@@ -202,7 +174,7 @@ class ObjectDetectionVisualizer:
                 )
                 label_text = f"{PASCAL_CLASSES[label - 1]}: {score:.2f}"
                 cv2.putText(
-                    img_with_predictions,
+                    img_np,
                     label_text,
                     (box[0], box[1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
@@ -212,6 +184,6 @@ class ObjectDetectionVisualizer:
                 )
 
             self._plot_detection_results(
-                orig_img, colored_heatmap, img_with_predictions, pred_scores, i
+                orig_img, colored_heatmap, img_np, pred_scores, i
             )
             plt.show()
