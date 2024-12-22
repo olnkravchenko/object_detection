@@ -19,7 +19,7 @@ overfit = args.overfit
 image_set = "val" if overfit else "train"
 
 dataset_val = torchvision.datasets.VOCDetection(
-    root="../VOC", year="2007", image_set=image_set, download=True
+    root="../VOC", year="2007", image_set=image_set, download=False
 )
 
 transform = transforms.Compose(

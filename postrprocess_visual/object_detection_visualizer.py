@@ -62,12 +62,12 @@ class ObjectDetectionVisualizer:
     def _prepare_dataset(self):
         try:
             dataset_val = torchvision.datasets.VOCDetection(
-                root="../VOC", year="2007", image_set="val", download=True
+                root="../VOC", year="2007", image_set="val", download=False
             )
             dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(
                 dataset_val
             )
-            indices = list(range(min(10, len(dataset_val))))
+            indices = range(10)
             dataset_val = Subset(dataset_val, indices)
             return dataset_val
         except Exception as e:
