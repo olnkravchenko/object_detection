@@ -97,8 +97,6 @@ epoch = 1
 get_desired_loss = False
 
 while True:
-    print("EPOCH {}:".format(epoch))
-
     loss_dict = {}
     for i, data in enumerate(batch_generator):
         input_data, gt_data = data
