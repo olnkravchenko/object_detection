@@ -48,7 +48,7 @@ if overfit:
     training_data = torch.utils.data.Subset(torch_dataset, range(subset_len))
     batch_size = subset_len
     lr = 5e-2
-    patience = 100    
+    patience = 100
     min_lr = 2e-3
     stop_loss = 1.0
     stop_epoch = None
@@ -122,9 +122,9 @@ while True:
     scheduler.step(loss_dict["loss"])
     epoch += 1
 
-train_location = path.dirname(path.abspath(__file__))
-checkpoints_dir = path.join(train_location, "../models/checkpoints")
+checkpoints_dir = "models/checkpoints"
 tail = f"_{tag}" if tag else ""
 checkpoint_filename = path.join(checkpoints_dir, f"pretrained_weights{tail}.pt")
-torch.save(model.state_dict(), checkpoint_filename)
+train_location = path.dirname(path.abspath(__file__))
+torch.save(model.state_dict(), path.join(train_location, "..", checkpoint_filename))
 print(f"Saved model checkpoint to {checkpoint_filename}")
