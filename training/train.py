@@ -48,8 +48,8 @@ if overfit:
     training_data = torch.utils.data.Subset(torch_dataset, range(subset_len))
     batch_size = subset_len
     lr = 5e-2
+    patience = 100    
     min_lr = 2e-3
-    patience = 100
     stop_loss = 1.0
     stop_epoch = None
 else:
@@ -76,7 +76,6 @@ model = ModelBuilder(alpha=0.25).to(device)
 
 parameters = list(model.parameters())
 optimizer = torch.optim.Adam(parameters, lr=lr)
-
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
     mode="min",
