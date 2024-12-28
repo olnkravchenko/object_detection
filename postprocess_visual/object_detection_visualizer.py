@@ -164,26 +164,27 @@ class ObjectDetectionVisualizer:
                 detections, self.input_height, self.input_width
             )
 
+            img_np_copy = img_np.copy()
             for box, label, score in zip(pred_boxes, pred_labels, pred_scores):
                 cv2.rectangle(
-                    img_np,
+                    img_np_copy,
                     (box[0], box[1]),
                     (box[2], box[3]),
-                    (0, 1, 0),
+                    (0, 255, 0),
                     2,
                 )
                 label_text = f"{PASCAL_CLASSES[label - 1]}: {score:.2f}"
                 cv2.putText(
-                    img_np,
+                    img_np_copy,
                     label_text,
                     (box[0], box[1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
-                    (0, 1, 0),
+                    (0, 255, 0),
                     2,
                 )
 
             self._plot_detection_results(
-                orig_img, colored_heatmap, img_np, pred_scores, i
+                orig_img, colored_heatmap, img_np_copy, pred_scores, i
             )
-            plt.show()
+        plt.show()
