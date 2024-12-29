@@ -151,5 +151,5 @@ class ObjectDetectionVisualizer:
                 orig_img, colored_heatmap, img_np, pred_scores, i
             )
 
-        plt.tight_layout()
-        plt.show()
+            plt.tight_layout()
+            plt.show()
