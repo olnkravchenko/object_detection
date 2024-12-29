@@ -59,7 +59,6 @@ class ObjectDetectionVisualizer:
     def _create_transforms(self):
         return transforms.Compose(
             [
-                # transforms.Resize(size=(self.input_width, self.input_height)),
                 transforms.ToImage(),
                 transforms.ToDtype(torch.float32, scale=True),
             ]
@@ -144,7 +143,6 @@ class ObjectDetectionVisualizer:
             plt.xlabel("Confidence Score")
         else:
             plt.text(0.5, 0.5, "No detections", ha="center", va="center")
-        plt.tight_layout()
 
     def visualize_predictions(self):
         for i, orig_img in enumerate(self.dataset):
@@ -158,7 +156,7 @@ class ObjectDetectionVisualizer:
             colored_heatmap = self._get_heatmap_visualization(heatmaps)
             detections = self.postprocessor(pred)
 
-            img_np = np.asarray(orig_img)
+            img_np = np.asarray(orig_img).copy()
 
             pred_boxes, pred_labels, pred_scores = self._process_detections(
                 detections, self.input_height, self.input_width
@@ -169,7 +167,7 @@ class ObjectDetectionVisualizer:
                     img_np,
                     (box[0], box[1]),
                     (box[2], box[3]),
-                    (0, 1, 0),
+                    (0, 255, 0),
                     2,
                 )
                 label_text = f"{PASCAL_CLASSES[label - 1]}: {score:.2f}"
@@ -179,11 +177,13 @@ class ObjectDetectionVisualizer:
                     (box[0], box[1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
-                    (0, 1, 0),
+                    (0, 255, 0),
                     2,
                 )
 
             self._plot_detection_results(
                 orig_img, colored_heatmap, img_np, pred_scores, i
             )
-            plt.show()
+
+        plt.tight_layout()
+        plt.show()
