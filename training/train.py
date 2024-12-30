@@ -9,10 +9,46 @@ from torch.utils import data
 from data.dataset import Dataset
 from models.centernet import ModelBuilder, input_height, input_width
 from training.encoder import CenternetEncoder
+from utils.config import load_config
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-o", "--overfit", action="store_true", help="overfit to 10 images")
-args = parser.parse_args()
+
+def criteria_builder(stop_loss, stop_epoch):
+    def criteria_satisfied(current_loss, current_epoch):
+        if stop_loss is not None and current_loss < 1.0:
+            return True
+        if stop_epoch is not None and current_epoch > stop_epoch:
+            return True
+        return False
+
+    return criteria_satisfied
+
+
+def save_model(model, weights_path: str = None, **kwargs):
+    checkpoints_dir = weights_path or "models/checkpoints"
+
+    tag = kwargs.get("tag", "train")
+    checkpoint_filename = path.join(
+        checkpoints_dir, f"pretrained_weights_{tag}.pt"
+    )
+    train_location = path.dirname(path.abspath(__file__))
+
+    torch.save(
+        model.state_dict(), path.join(train_location, "..", checkpoint_filename)
+    )
+    print(f"Saved model checkpoint to {checkpoint_filename}")
+
+
+def main(config_path: str = None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", type=str, help="path to config file")
+    args = parser.parse_args()
+
+    filepath = args.config or config_path
+
+    model_conf, train_conf, data_conf = load_config(filepath)
+
+    train(model_conf, train_conf, data_conf)
+
 
 overfit = args.overfit
 
@@ -120,9 +156,6 @@ while True:
     scheduler.step(loss_dict["loss"])
     epoch += 1
 
-checkpoints_dir = "models/checkpoints"
-tail = f"_{tag}" if tag else ""
-checkpoint_filename = path.join(checkpoints_dir, f"pretrained_weights{tail}.pt")
-train_location = path.dirname(path.abspath(__file__))
-torch.save(model.state_dict(), path.join(train_location, "..", checkpoint_filename))
-print(f"Saved model checkpoint to {checkpoint_filename}")
+
+if __name__ == "__main__":
+    main()
