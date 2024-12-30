@@ -70,14 +70,13 @@ def train(model_conf, train_conf, data_conf):
 
     encoder = CenternetEncoder(input_height, input_width)
 
-    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(
-        dataset_val
-    )
+    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
     torch_dataset = Dataset(
         dataset=dataset_val, transformation=transform, encoder=encoder
     )
-
+    tag = "train"
     training_data = torch_dataset
+    batch_size = train_conf["batch_size"]
 
     if train_conf["is_overfit"]:
         tag = "overfit"
