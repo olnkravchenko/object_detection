@@ -4,10 +4,9 @@ from os import path
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
-from torch.utils import data
-
 from data.dataset import Dataset
 from models.centernet import ModelBuilder, input_height, input_width
+from torch.utils import data
 from training.encoder import CenternetEncoder
 from utils.config import load_config
 
@@ -50,111 +49,95 @@ def main(config_path: str = None):
     train(model_conf, train_conf, data_conf)
 
 
-overfit = args.overfit
+def train(model_conf, train_conf, data_conf):
+    image_set = "val" if train_conf["is_overfit"] else "train"
+    print(f"Selected image_set: {image_set}")
 
+    dataset_val = torchvision.datasets.VOCDetection(
+        root="../VOC",
+        year="2007",
+        image_set=image_set,
+        download=data_conf["is_download"],
+    )
 
-image_set = "val" if overfit else "train"
+    transform = transforms.Compose(
+        [
+            transforms.Resize(size=(input_width, input_height)),
+            transforms.ToImage(),
+            transforms.ToDtype(torch.float32, scale=True),
+        ]
+    )
 
-dataset_val = torchvision.datasets.VOCDetection(
-    root="../VOC", year="2007", image_set=image_set, download=False
-)
+    encoder = CenternetEncoder(input_height, input_width)
 
-transform = transforms.Compose(
-    [
-        transforms.Resize(size=(input_width, input_height)),
-        transforms.ToImage(),
-        transforms.ToDtype(torch.float32, scale=True),
-    ]
-)
+    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(
+        dataset_val
+    )
+    torch_dataset = Dataset(
+        dataset=dataset_val, transformation=transform, encoder=encoder
+    )
 
-encoder = CenternetEncoder(input_height, input_width)
+    training_data = torch_dataset
 
-dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
-torch_dataset = Dataset(dataset=dataset_val, transformation=transform, encoder=encoder)
+    if train_conf["is_overfit"]:
+        tag = "overfit"
+        training_data = torch.utils.data.Subset(
+            torch_dataset, range(train_conf["subset_len"])
+        )
+        batch_size = train_conf["subset_len"]
 
-training_data = torch_dataset
-lr = 0.03
-batch_size = 32
-patience = 7
-min_lr = 1e-3
+    criteria_satisfied = criteria_builder(*train_conf["stop_criteria"].values())
 
-if overfit:
-    tag = "overfit"
-    subset_len = 10
-    training_data = torch.utils.data.Subset(torch_dataset, range(subset_len))
-    batch_size = subset_len
-    lr = 5e-2
-    patience = 100
-    min_lr = 2e-3
-    stop_loss = 1.0
-    stop_epoch = None
-else:
-    tag = ""
-    min_lr = 1e-5
-    patience = 7
-    stop_loss = None
-    stop_epoch = 500
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = ModelBuilder(alpha=model_conf["alpha"]).to(device)
 
+    parameters = list(model.parameters())
+    optimizer = torch.optim.Adam(parameters, lr=train_conf["lr"])
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=train_conf["lr_schedule"]["factor"],
+        patience=train_conf["lr_schedule"]["patience"],
+        threshold=1e-4,
+        threshold_mode="rel",
+        cooldown=1,
+        min_lr=train_conf["lr_schedule"]["min_lr"],
+    )
 
-def criteria_satisfied(current_loss, current_epoch):
-    if stop_loss is not None and current_loss < 1.0:
-        return True
-    if stop_epoch is not None and current_epoch > stop_epoch:
-        return True
-    return False
+    model.train(True)
 
+    batch_generator = torch.utils.data.DataLoader(
+        training_data, num_workers=0, batch_size=batch_size, shuffle=False
+    )
 
-print(f"Selected image_set: {image_set}")
+    epoch = 1
+    get_desired_loss = False
 
+    while True:
+        loss_dict = {}
+        for i, data in enumerate(batch_generator):
+            input_data, gt_data = data
+            input_data = input_data.to(device).contiguous()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = ModelBuilder(alpha=0.25).to(device)
+            gt_data = gt_data.to(device)
+            gt_data.requires_grad = False
 
-parameters = list(model.parameters())
-optimizer = torch.optim.Adam(parameters, lr=lr)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer,
-    mode="min",
-    factor=0.5,
-    patience=patience,
-    threshold=1e-4,
-    threshold_mode="rel",
-    cooldown=1,
-    min_lr=min_lr,
-)
+            loss_dict = model(input_data, gt=gt_data)
+            optimizer.zero_grad()  # compute gradient and do optimize step
+            loss_dict["loss"].backward()
 
-model.train(True)
+            optimizer.step()
+            loss = loss_dict["loss"].item()
+            curr_lr = scheduler.get_last_lr()[0]
+            print(f"Epoch {epoch}, batch {i}, loss={loss:.3f}, lr={curr_lr}")
 
-batch_generator = torch.utils.data.DataLoader(
-    training_data, num_workers=0, batch_size=batch_size, shuffle=False
-)
+        if criteria_satisfied(loss, epoch):
+            break
 
-epoch = 1
-get_desired_loss = False
+        scheduler.step(loss_dict["loss"])
+        epoch += 1
 
-while True:
-    loss_dict = {}
-    for i, data in enumerate(batch_generator):
-        input_data, gt_data = data
-        input_data = input_data.to(device).contiguous()
-
-        gt_data = gt_data.to(device)
-        gt_data.requires_grad = False
-
-        loss_dict = model(input_data, gt=gt_data)
-        optimizer.zero_grad()  # compute gradient and do optimize step
-        loss_dict["loss"].backward()
-
-        optimizer.step()
-        loss = loss_dict["loss"].item()
-        curr_lr = scheduler.get_last_lr()[0]
-        print(f"Epoch {epoch}, batch {i}, loss={loss:.3f}, lr={curr_lr}")
-
-    if criteria_satisfied(loss, epoch):
-        break
-
-    scheduler.step(loss_dict["loss"])
-    epoch += 1
+    save_model(model, model_conf["weights_path"], tag=tag)
 
 
 if __name__ == "__main__":
