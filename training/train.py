@@ -1,12 +1,13 @@
 import argparse
-from os import path
+from pathlib import Path
 
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
+from torch.utils import data
+
 from data.dataset import Dataset
 from models.centernet import ModelBuilder, input_height, input_width
-from torch.utils import data
 from training.encoder import CenternetEncoder
 from utils.config import load_config
 
@@ -24,16 +25,14 @@ def criteria_builder(stop_loss, stop_epoch):
 
 def save_model(model, weights_path: str = None, **kwargs):
     checkpoints_dir = weights_path or "models/checkpoints"
-
     tag = kwargs.get("tag", "train")
-    checkpoint_filename = path.join(
-        checkpoints_dir, f"pretrained_weights_{tag}.pt"
-    )
-    train_location = path.dirname(path.abspath(__file__))
+    cur_dir = Path(__file__).resolve().parent
 
-    torch.save(
-        model.state_dict(), path.join(train_location, "..", checkpoint_filename)
+    checkpoint_filename = (
+        cur_dir.parent / checkpoints_dir / f"pretrained_weights_{tag}.pt"
     )
+
+    torch.save(model.state_dict(), checkpoint_filename)
     print(f"Saved model checkpoint to {checkpoint_filename}")
 
 
