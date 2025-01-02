@@ -12,6 +12,18 @@ from training.encoder import CenternetEncoder
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--overfit", action="store_true", help="overfit to 10 images")
+parser.add_argument(
+    "-b",
+    "--backbone",
+    type=str,
+    help="Backbone name. Supported backbones: '', default, resnetXX, efficientnet_bX + v2_x, mobilenet_v2.",
+)
+parser.add_argument(
+    "-bw",
+    "--backbone_weights",
+    type=str,
+    help="Backbone weights for supported pretrained backbones",
+)
 args = parser.parse_args()
 
 overfit = args.overfit
@@ -57,13 +69,13 @@ else:
     min_lr = 1e-5
     patience = 7
     stop_loss = None
-    stop_epoch = 500
+    stop_epoch = 100
 
 
 def criteria_satisfied(current_loss, current_epoch):
     if stop_loss is not None and current_loss < 1.0:
         return True
-    if stop_epoch is not None and current_epoch > stop_epoch:
+    if stop_epoch is not None and current_epoch >= stop_epoch:
         return True
     return False
 
@@ -72,7 +84,13 @@ print(f"Selected image_set: {image_set}")
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = ModelBuilder(alpha=0.25).to(device)
+alpha = 0.25
+if args.backbone and args.backbone != "default":
+    alpha = 1.0
+model = ModelBuilder(
+    alpha=alpha, backbone=args.backbone, backbone_weights=args.backbone_weights
+)
+model = model.to(device)
 
 parameters = list(model.parameters())
 optimizer = torch.optim.Adam(parameters, lr=lr)
@@ -122,6 +140,8 @@ while True:
 
 checkpoints_dir = "models/checkpoints"
 tail = f"_{tag}" if tag else ""
+if args.backbone:
+    tail += "_" + args.backbone
 checkpoint_filename = path.join(checkpoints_dir, f"pretrained_weights{tail}.pt")
 train_location = path.dirname(path.abspath(__file__))
 torch.save(model.state_dict(), path.join(train_location, "..", checkpoint_filename))
