@@ -31,9 +31,7 @@ def create_backbone(
     try:
         backbone_class = BACKBONE_BUILDER_CONF[backbone_name_parsed]
     except KeyError as exc:
-        raise ValueError(
-            f"Backbone '{backbone_name}' is not supported yet"
-        ) from exc
+        raise ValueError(f"Backbone '{backbone_name}' is not supported yet") from exc
 
     if backbone_name_parsed == "default":
         return backbone_class(alpha)

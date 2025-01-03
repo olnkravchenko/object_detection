@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
+
 from data.dataset import Dataset
 from models.centernet import ModelBuilder, input_height, input_width
 from training.encoder import CenternetEncoder
@@ -28,9 +29,7 @@ def save_model(model, weights_path: str = None, **kwargs):
     cur_dir = Path(__file__).resolve().parent
 
     checkpoint_filename = (
-        cur_dir.parent
-        / checkpoints_dir
-        / f"pretrained_weights_{tag}_{backbone}.pt"
+        cur_dir.parent / checkpoints_dir / f"pretrained_weights_{tag}_{backbone}.pt"
     )
 
     torch.save(model.state_dict(), checkpoint_filename)
@@ -70,9 +69,7 @@ def train(model_conf, train_conf, data_conf):
 
     encoder = CenternetEncoder(input_height, input_width)
 
-    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(
-        dataset_val
-    )
+    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
     torch_dataset = Dataset(
         dataset=dataset_val, transformation=transform, encoder=encoder
     )

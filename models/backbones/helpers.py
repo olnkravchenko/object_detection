@@ -32,11 +32,7 @@ def _analyze_layer(layer):
             stride = max(stride, nested_stride)
         return input_filters, stride
     is_sequential = isinstance(layer, torch.nn.Sequential)
-    if (
-        is_sequential
-        or isinstance(layer, MBConv)
-        or isinstance(layer, FusedMBConv)
-    ):
+    if is_sequential or isinstance(layer, MBConv) or isinstance(layer, FusedMBConv):
         blocks = layer if is_sequential else layer.block
         input_filters, stride = _analyze_layer(blocks[0])
         for layer in blocks[1:]:
