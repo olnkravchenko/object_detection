@@ -30,9 +30,9 @@ def create_backbone(
     backbone_name_parsed = backbone_name.lower()
     backbone_class = None
 
-    for name in BACKBONE_BUILDER_CONF:
+    for name, conf_class in BACKBONE_BUILDER_CONF.items():
         if backbone_name_parsed.startswith(name):
-            backbone_class = name
+            backbone_class = conf_class
 
     if backbone_class is None:
         raise ValueError(f"Backbone '{backbone_name}' is not supported yet")
