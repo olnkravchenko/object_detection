@@ -4,12 +4,11 @@ from pathlib import Path
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
-from torch.utils import data
-
 from data.dataset import Dataset
 from models.centernet import ModelBuilder, input_height, input_width
 from training.encoder import CenternetEncoder
 from utils.config import load_config
+
 
 def criteria_builder(stop_loss, stop_epoch):
     def criteria_satisfied(current_loss, current_epoch):
@@ -29,7 +28,9 @@ def save_model(model, weights_path: str = None, **kwargs):
     cur_dir = Path(__file__).resolve().parent
 
     checkpoint_filename = (
-        cur_dir.parent / checkpoints_dir / f"pretrained_weights_{tag}_{backbone}.pt"
+        cur_dir.parent
+        / checkpoints_dir
+        / f"pretrained_weights_{tag}_{backbone}.pt"
     )
 
     torch.save(model.state_dict(), checkpoint_filename)
@@ -44,9 +45,6 @@ def main(config_path: str = None):
     filepath = args.config or config_path
 
     model_conf, train_conf, data_conf = load_config(filepath)
-    
-    if model_conf["backbone"]["name"] != "default":
-        model_conf["alpha"] = 1.0
 
     train(model_conf, train_conf, data_conf)
 
@@ -72,7 +70,9 @@ def train(model_conf, train_conf, data_conf):
 
     encoder = CenternetEncoder(input_height, input_width)
 
-    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
+    dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(
+        dataset_val
+    )
     torch_dataset = Dataset(
         dataset=dataset_val, transformation=transform, encoder=encoder
     )
@@ -91,7 +91,9 @@ def train(model_conf, train_conf, data_conf):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ModelBuilder(
-        alpha=model_conf["alpha"], backbone=model_conf["backbone"]["name"], backbone_weights=model_conf["backbone"]["pretrained_weights"]
+        alpha=model_conf["alpha"],
+        backbone=model_conf["backbone"]["name"],
+        backbone_weights=model_conf["backbone"]["pretrained_weights"],
     ).to(device)
 
     parameters = list(model.parameters())
@@ -140,7 +142,12 @@ def train(model_conf, train_conf, data_conf):
         scheduler.step(loss_dict["loss"])
         epoch += 1
 
-    save_model(model, model_conf["weights_path"], tag=tag, backbone=model_conf["backbone"]["name"])
+    save_model(
+        model,
+        model_conf["weights_path"],
+        tag=tag,
+        backbone=model_conf["backbone"]["name"],
+    )
 
 
 if __name__ == "__main__":
