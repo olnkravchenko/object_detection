@@ -11,7 +11,6 @@ from models.centernet import ModelBuilder, input_height, input_width
 from training.encoder import CenternetEncoder
 from utils.config import load_config
 
-
 def criteria_builder(stop_loss, stop_epoch):
     def criteria_satisfied(current_loss, current_epoch):
         if stop_loss is not None and current_loss < 1.0:
@@ -26,10 +25,11 @@ def criteria_builder(stop_loss, stop_epoch):
 def save_model(model, weights_path: str = None, **kwargs):
     checkpoints_dir = weights_path or "models/checkpoints"
     tag = kwargs.get("tag", "train")
+    backbone = kwargs.get("backbone", "default")
     cur_dir = Path(__file__).resolve().parent
 
     checkpoint_filename = (
-        cur_dir.parent / checkpoints_dir / f"pretrained_weights_{tag}.pt"
+        cur_dir.parent / checkpoints_dir / f"pretrained_weights_{tag}_{backbone}.pt"
     )
 
     torch.save(model.state_dict(), checkpoint_filename)
@@ -44,6 +44,9 @@ def main(config_path: str = None):
     filepath = args.config or config_path
 
     model_conf, train_conf, data_conf = load_config(filepath)
+    
+    if model_conf["backbone"]["name"] != "default":
+        model_conf["alpha"] = 1.0
 
     train(model_conf, train_conf, data_conf)
 
@@ -87,7 +90,9 @@ def train(model_conf, train_conf, data_conf):
     criteria_satisfied = criteria_builder(*train_conf["stop_criteria"].values())
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = ModelBuilder(alpha=model_conf["alpha"]).to(device)
+    model = ModelBuilder(
+        alpha=model_conf["alpha"], backbone=model_conf["backbone"]["name"], backbone_weights=model_conf["backbone"]["pretrained_weights"]
+    ).to(device)
 
     parameters = list(model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=train_conf["lr"])
@@ -135,7 +140,7 @@ def train(model_conf, train_conf, data_conf):
         scheduler.step(loss_dict["loss"])
         epoch += 1
 
-    save_model(model, model_conf["weights_path"], tag=tag)
+    save_model(model, model_conf["weights_path"], tag=tag, backbone=model_conf["backbone"]["name"])
 
 
 if __name__ == "__main__":
