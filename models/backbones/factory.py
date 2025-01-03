@@ -28,10 +28,14 @@ def create_backbone(
         BackboneType: backbone model which implements AbstractBackbone class
     """
     backbone_name_parsed = backbone_name.lower()
-    try:
-        backbone_class = BACKBONE_BUILDER_CONF[backbone_name_parsed]
-    except KeyError as exc:
-        raise ValueError(f"Backbone '{backbone_name}' is not supported yet") from exc
+    backbone_class = None
+
+    for name in BACKBONE_BUILDER_CONF:
+        if backbone_name_parsed.startswith(name):
+            backbone_class = name
+
+    if backbone_class is None:
+        raise ValueError(f"Backbone '{backbone_name}' is not supported yet")
 
     if backbone_name_parsed == "default":
         return backbone_class(alpha)
