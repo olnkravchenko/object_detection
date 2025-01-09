@@ -1,6 +1,6 @@
 {
   "model": {
-    "alpha": 0.25,
+    "alpha": 1.0,
     "weights_path": null,
     "backbone": {
       "name": "efficientnet_b0",
