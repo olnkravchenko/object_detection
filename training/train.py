@@ -6,9 +6,9 @@ import torchvision
 import torchvision.transforms.v2 as transforms
 
 from data.dataset import Dataset
-from models.centernet import ModelBuilder, input_height, input_width
+from models.centernet import ModelBuilder
 from training.encoder import CenternetEncoder
-from utils.config import load_config
+from utils.config import IMG_HEIGHT, IMG_WIDTH, load_config
 
 
 def criteria_builder(stop_loss, stop_epoch):
@@ -61,13 +61,13 @@ def train(model_conf, train_conf, data_conf):
 
     transform = transforms.Compose(
         [
-            transforms.Resize(size=(input_width, input_height)),
+            transforms.Resize(size=(IMG_WIDTH, IMG_HEIGHT)),
             transforms.ToImage(),
             transforms.ToDtype(torch.float32, scale=True),
         ]
     )
 
-    encoder = CenternetEncoder(input_height, input_width)
+    encoder = CenternetEncoder(IMG_HEIGHT, IMG_WIDTH)
 
     dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
     torch_dataset = Dataset(
