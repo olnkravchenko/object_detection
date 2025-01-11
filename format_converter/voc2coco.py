@@ -5,9 +5,9 @@ Reference 2: https://github.com/yukkyo/voc2coco/blob/master/voc2coco.py
 With changes:
 1. id stored as int by default
 2. provide only root_dir, and corresponding simplification
-3. split train/val/test
-4. Use defusedxml.ElementTree for security concern
-5. remove invalid images
+3. Use defusedxml.ElementTree for security concern
+4. remove invalid images (without bounding boxes or too small bounding boxes)
+5. this script doesn't convert segmentation
 
 To use:
     If you'd like to customize train/val/test ratio. Note test_ratio = 1 - train_ratio - val_ratio.
@@ -29,6 +29,8 @@ from tqdm import tqdm
 
 DEFAULT_EXT = ".jpg"
 MIN_AREA = 4
+
+# todo (AA): Add MIN_AREA from command line perameter
 
 
 def dump_voc_classes(voc_annotation_path: str, voc_class_names_output_path: str = None) -> [str]:
@@ -64,36 +66,6 @@ def dump_voc_classes(voc_annotation_path: str, voc_class_names_output_path: str 
     return sorted_class_names
 
 
-def dump_voc_xml_files(voc_annotation_path: str, voc_annotation_xml_output_path: str = None) -> [str]:
-    """
-    Reads annotations for a dataset in VOC format.
-    Then
-        1. dumps the unique class names into labels.txt file.
-        2. dumps the xml annotation file names into pathlist.txt file.
-    Parameters
-    ----------
-    voc_annotation_path
-        root_path for annotations in VOC format
-    voc_annotation_xml_output_path
-        output path for the pathlist.txt
-    Returns
-    -------
-        list of strings, [xml_file0, xml_file1, ...]
-    """
-    files = os.listdir(voc_annotation_path)
-    annotation_path_base_name = os.path.basename(voc_annotation_path)
-    xml_file_names = []
-    for f in files:
-        if f.endswith(".xml"):
-            xml_file_names.append(os.path.join(annotation_path_base_name, f))
-
-    if voc_annotation_xml_output_path:
-        with open(voc_annotation_xml_output_path, "w") as f:
-            f.writelines("\n".join(xml_file_names))
-
-    return xml_file_names
-
-
 def get_label2id(labels_path: str) -> Dict[str, int]:
     """id is 1 start"""
     with open(labels_path, "r") as f:
@@ -102,58 +74,40 @@ def get_label2id(labels_path: str) -> Dict[str, int]:
     return dict(zip(labels_str, labels_ids))
 
 
-def get_annpaths(
-    root_dir: str,
-    annpaths_list_path: str = None,
-    train_ratio=0.6,
-    val_ratio=0.2,
-) -> Dict:
-    if annpaths_list_path is not None:
-        with open(annpaths_list_path, "r") as f:
-            ann_paths = f.read().split()
-        random.shuffle(ann_paths)
-        N = len(ann_paths)
-        num_train = int(N * train_ratio)
-        num_val = int(N * val_ratio)
-        return {
-            "usersplit_train": ann_paths[:num_train],
-            "usersplit_val": ann_paths[num_train : num_train + num_val],
-            "usersplit_test": ann_paths[num_train + num_val :],
-        }
-    else:
-        ann_ids_folder = os.path.join(root_dir, "ImageSets", "Main")
-        ann_dir_path = os.path.join(root_dir, "Annotations")
-        ann_paths = {}
-        for ann_ids_filename in os.listdir(ann_ids_folder):
-            ann_ids_path = os.path.join(ann_ids_folder, ann_ids_filename)
-            if os.path.isfile(ann_ids_path) and ann_ids_filename[-4:] == ".txt":
-                ann_ids_name = ann_ids_filename[:-4]
+def get_annpaths(root_dir: str) -> Dict:
+    ann_ids_folder = os.path.join(root_dir, "ImageSets", "Main")
+    ann_dir_path = os.path.join(root_dir, "Annotations")
+    ann_paths = {}
+    for ann_ids_filename in os.listdir(ann_ids_folder):
+        ann_ids_path = os.path.join(ann_ids_folder, ann_ids_filename)
+        if os.path.isfile(ann_ids_path) and ann_ids_filename[-4:] == ".txt":
+            ann_ids_name = ann_ids_filename[:-4]
 
-                with open(ann_ids_path, "r") as f:
-                    rows = f.readlines()
-                    if not rows:
-                        print(f"Skipping {ann_ids_path}: file is empty")
-                    else:
-                        ann_ids = []
-                        for r in rows:
-                            data = r.strip().split()
-                            if len(data) == 1:  # Each row is an annotation id
-                                ann_ids.append(data[0])
-                            elif (
-                                len(data) == 2
-                            ):  # Each row contains an annotation id and a flag (0 if we do not use this annotation in this split, and 1 if we use it)
-                                ann_id, used = data
-                                if int(used) == 1:
-                                    ann_ids.append(ann_id)
-                            else:
-                                print(
-                                    f"Skipping {ann_ids_path}: file format not recognized. Make sure your annotation follows "
-                                    f"VOC format!"
-                                )
-                                break
+            with open(ann_ids_path, "r") as f:
+                rows = f.readlines()
+                if not rows:
+                    print(f"Skipping {ann_ids_path}: file is empty")
+                else:
+                    ann_ids = []
+                    for r in rows:
+                        data = r.strip().split()
+                        if len(data) == 1:  # Each row is an annotation id
+                            ann_ids.append(data[0])
+                        elif (
+                            len(data) == 2
+                        ):  # Each row contains an annotation id and a flag (0 if we do not use this annotation in this split, and 1 if we use it)
+                            ann_id, used = data
+                            if int(used) == 1:
+                                ann_ids.append(ann_id)
+                        else:
+                            print(
+                                f"Skipping {ann_ids_path}: file format not recognized. Make sure your annotation follows "
+                                f"VOC format!"
+                            )
+                            break
 
-                        ann_paths[ann_ids_name] = [os.path.join(ann_dir_path, aid + ".xml") for aid in ann_ids]
-        return ann_paths
+                    ann_paths[ann_ids_name] = [os.path.join(ann_dir_path, aid + ".xml") for aid in ann_ids]
+    return ann_paths
 
 
 def get_image_info(annotation_root, extract_num_from_imgid=True):
@@ -247,12 +201,9 @@ def convert_xmls_to_cocojson(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="This script support converting voc format xmls to coco format json")
+    parser = argparse.ArgumentParser(description="This script converts voc format xmls to coco format json")
     parser.add_argument("--root_dir", type=str, default="../VOC", help="path to VOC format dataset root")
-    parser.add_argument("--train_ratio", type=float, default=None, help="training set ratio")
-    parser.add_argument("--val_ratio", type=float, default=None, help="validation set ratio")
     parser.add_argument("--ext", type=str, default=".jpg", help="extension for image file (.jpg or .png)")
-    parser.add_argument("--min_area", type=int, default=4, help="min area for a valid bounding box")
     parser.add_argument(
         "--not_extract_num_from_imgid", action="store_true", help="Extract image number from the image filename"
     )
@@ -264,18 +215,6 @@ def main():
 
     if not args.root_dir:
         raise ValueError("Must specify the root of the VOC format dataset.")
-    if args.train_ratio is not None:
-        assert args.train_ratio >= 0
-        assert args.val_ratio >= 0
-        assert args.train_ratio + args.val_ratio <= 1
-        annpaths_list_path = os.path.join(args.root_dir, "pathlist.txt")
-        ## generate pathlist.txt containing all xml file paths
-        dump_voc_xml_files(
-            voc_annotation_path=os.path.join(args.root_dir, "Annotations"),
-            voc_annotation_xml_output_path=annpaths_list_path,
-        )
-
-        assert os.path.exists(annpaths_list_path), "FatalError: pathlist.txt does not exist!"
 
     labels_path = os.path.join(args.root_dir, "labels.txt")
     ## generate labels.txt containing all unique class names
@@ -288,12 +227,7 @@ def main():
     output_path_fmt = os.path.join(args.root_dir, "Annotations", "%s_cocoformat.json")
 
     label2id = get_label2id(labels_path=labels_path)
-    ann_paths = get_annpaths(
-        root_dir=args.root_dir,
-        annpaths_list_path=annpaths_list_path,
-        train_ratio=args.train_ratio,
-        val_ratio=args.val_ratio,
-    )
+    ann_paths = get_annpaths(root_dir=args.root_dir)
     for mode in ann_paths.keys():
         convert_xmls_to_cocojson(
             root_dir=args.root_dir,
