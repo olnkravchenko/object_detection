@@ -27,12 +27,6 @@ import defusedxml.ElementTree as ET
 from tqdm import tqdm
 
 
-DEFAULT_EXT = ".jpg"
-MIN_AREA = 4
-
-# todo (AA): Add MIN_AREA from command line perameter
-
-
 def dump_voc_classes(voc_annotation_path: str, voc_class_names_output_path: str = None) -> [str]:
     """
     Reads annotations for a dataset in VOC format.
@@ -110,7 +104,7 @@ def get_annpaths(root_dir: str) -> Dict:
     return ann_paths
 
 
-def get_image_info(annotation_root, extract_num_from_imgid=True):
+def get_image_info(annotation_root, ext, extract_num_from_imgid=True):
     path = annotation_root.findtext("path")
     if path is None:
         filename = annotation_root.findtext("filename")
@@ -118,7 +112,7 @@ def get_image_info(annotation_root, extract_num_from_imgid=True):
         filename = os.path.basename(path)
     img_name = os.path.basename(filename)
     if not img_name[-4:] in [".jpg", ".png"]:
-        img_name = img_name + DEFAULT_EXT
+        img_name = img_name + ext
     img_id = os.path.splitext(img_name)[0]
     if extract_num_from_imgid and isinstance(img_id, str):
         img_id = int("".join(re.findall(r"\d+", img_id)))
@@ -131,7 +125,7 @@ def get_image_info(annotation_root, extract_num_from_imgid=True):
     return image_info
 
 
-def get_coco_annotation_from_obj(obj, label2id):
+def get_coco_annotation_from_obj(obj, label2id, min_area):
     label = obj.findtext("name")
     assert label in label2id, f"Error: {label} is not in label2id !"
     category_id = label2id[label]
@@ -145,7 +139,7 @@ def get_coco_annotation_from_obj(obj, label2id):
     o_width = xmax - xmin
     o_height = ymax - ymin
     area = o_width * o_height
-    if area <= MIN_AREA:
+    if area <= min_area:
         return {}
     ann = {
         "area": o_width * o_height,
@@ -162,6 +156,8 @@ def convert_xmls_to_cocojson(
     root_dir: str,
     annotation_paths: List[str],
     label2id: Dict[str, int],
+    ext: str,
+    min_area: int,
     output_jsonpath: str,
     extract_num_from_imgid: bool = True,
 ):
@@ -173,12 +169,12 @@ def convert_xmls_to_cocojson(
         ann_tree = ET.parse(os.path.join(root_dir, a_path))
         ann_root = ann_tree.getroot()
 
-        img_info = get_image_info(annotation_root=ann_root, extract_num_from_imgid=extract_num_from_imgid)
+        img_info = get_image_info(annotation_root=ann_root, ext=ext, extract_num_from_imgid=extract_num_from_imgid)
         img_id = img_info["id"]
 
         valid_image = False  # remove image without bounding box to speed up mAP calculation
         for obj in ann_root.findall("object"):
-            ann = get_coco_annotation_from_obj(obj=obj, label2id=label2id)
+            ann = get_coco_annotation_from_obj(obj=obj, label2id=label2id, min_area=min_area)
             if ann:
                 ann.update({"image_id": img_id, "id": bnd_id})
                 output_json_dict["annotations"].append(ann)
@@ -204,14 +200,17 @@ def main():
     parser = argparse.ArgumentParser(description="This script converts voc format xmls to coco format json")
     parser.add_argument("--root_dir", type=str, default="../VOC", help="path to VOC format dataset root")
     parser.add_argument("--ext", type=str, default=".jpg", help="extension for image file (.jpg or .png)")
+    parser.add_argument("--min_area", type=int, default=4, help="min area for a valid bounding box")
     parser.add_argument(
         "--not_extract_num_from_imgid", action="store_true", help="Extract image number from the image filename"
     )
     args = parser.parse_args()
 
-    annpaths_list_path = None
-    DEFAULT_EXT = args.ext
-    assert DEFAULT_EXT in [".jpg", ".png"]
+    ext = args.ext
+    assert ext in [".jpg", ".png"]
+
+    min_area = args.min_area
+    assert min_area >= 0
 
     if not args.root_dir:
         raise ValueError("Must specify the root of the VOC format dataset.")
@@ -232,6 +231,8 @@ def main():
         convert_xmls_to_cocojson(
             root_dir=args.root_dir,
             annotation_paths=ann_paths[mode],
+            ext=ext,
+            min_area=min_area,
             label2id=label2id,
             output_jsonpath=output_path_fmt % mode,
             extract_num_from_imgid=(not args.not_extract_num_from_imgid),
