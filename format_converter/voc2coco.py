@@ -9,8 +9,6 @@ Reference 2: https://github.com/yukkyo/voc2coco/blob/master/voc2coco.py
 5. this script doesn't convert segmentation
 
 To use:
-    If you'd like to customize train/val/test ratio. Note test_ratio = 1 - train_ratio - val_ratio.
-        python3 -m autogluon.multimodal.cli.voc2coco --root_dir <root_dir> --train_ratio <train_ratio> --val_ratio <val_ratio>
     If you'd like to use the dataset provided train/val/test splits:
         python3 -m autogluon.multimodal.cli.voc2coco --root_dir <root_dir>
 """
@@ -70,9 +68,9 @@ def get_label2id(labels_path: str) -> Dict[str, int]:
     return dict(zip(labels_str, labels_ids))
 
 
-def get_annpaths(root_dir: str) -> Dict:
-    ann_ids_folder = os.path.join(root_dir, "ImageSets", "Main")
-    ann_dir_path = os.path.join(root_dir, "Annotations")
+def get_annpaths(voc_dir: str) -> Dict:
+    ann_ids_folder = os.path.join(voc_dir, "ImageSets", "Main")
+    ann_dir_path = "Annotations"
     ann_paths = {}
     for ann_ids_filename in os.listdir(ann_ids_folder):
         ann_ids_path = os.path.join(ann_ids_folder, ann_ids_filename)
@@ -127,7 +125,7 @@ def get_image_info(annotation_root, extract_num_from_imgid=True):
         "file_name": os.path.join("JPEGImages", img_name),
         "height": height,
         "width": width,
-        "id": img_id,
+        "id": int(img_id),
     }
     return image_info
 
@@ -160,7 +158,7 @@ def get_coco_annotation_from_obj(obj, label2id):
 
 
 def convert_xmls_to_cocojson(
-    root_dir: str,
+    voc_dir: str,
     annotation_paths: List[str],
     label2id: Dict[str, int],
     output_jsonpath: str,
@@ -171,7 +169,7 @@ def convert_xmls_to_cocojson(
     print("Start converting !")
     for a_path in tqdm(annotation_paths):
         # Read annotation xml
-        ann_tree = ET.parse(os.path.join(root_dir, a_path))
+        ann_tree = ET.parse(os.path.join(voc_dir, a_path))
         ann_root = ann_tree.getroot()
 
         img_info = get_image_info(annotation_root=ann_root, extract_num_from_imgid=extract_num_from_imgid)
@@ -189,7 +187,7 @@ def convert_xmls_to_cocojson(
         if valid_image:
             output_json_dict["images"].append(img_info)
         else:
-            print(f"Image {img_id} is removed since it does not contain any valid object !")
+            print(f"Image {img_id} is removed since it does not contain any valid object")
 
     for label, label_id in label2id.items():
         category_info = {"supercategory": "none", "id": label_id, "name": label}
@@ -207,8 +205,10 @@ def main():
     parser.add_argument("--ext", type=str, default=".jpg", help="extension for image file (.jpg or .png)")
     parser.add_argument("--min_area", type=str, default=4, help="min area for a valid bounding box")
     parser.add_argument(
-        "--not_extract_num_from_imgid", action="store_true", help="Extract image number from the image filename"
+        "--not_extract_num_from_imgid", action="store_true",
+        help="Extract image number from the image filename"
     )
+
     args = parser.parse_args()
 
     DEFAULT_EXT = args.ext
@@ -220,25 +220,25 @@ def main():
     if not args.root_dir:
         raise ValueError("Must specify the root of the VOC format dataset.")
 
-    labels_path = os.path.join(args.root_dir, "labels.txt")
-    ## generate labels.txt containing all unique class names
+    voc_dir = os.path.join(args.root_dir, "VOCdevkit", "VOC2007")
+
+    labels_path = os.path.join(voc_dir, "labels.txt")
+    # generate labels.txt containing all unique class names
     dump_voc_classes(
-        voc_annotation_path=os.path.join(args.root_dir, "Annotations"), voc_class_names_output_path=labels_path
+        voc_annotation_path=os.path.join(voc_dir, "Annotations"), voc_class_names_output_path=labels_path
     )
 
-    assert os.path.exists(labels_path), "FatalError: labels.txt does not exist!"
-
-    output_path_fmt = os.path.join(args.root_dir, "Annotations", "%s_cocoformat.json")
+    output_path_fmt = os.path.join(voc_dir, "Annotations", "%s_cocoformat.json")
 
     label2id = get_label2id(labels_path=labels_path)
-    ann_paths = get_annpaths(root_dir=args.root_dir)
-    for mode in ann_paths.keys():
+    ann_paths = get_annpaths(voc_dir=voc_dir)
+    for mode, ann_path in ann_paths.items():
         convert_xmls_to_cocojson(
-            root_dir=args.root_dir,
-            annotation_paths=ann_paths[mode],
+            voc_dir=voc_dir,
+            annotation_paths=ann_path,
             label2id=label2id,
             output_jsonpath=output_path_fmt % mode,
-            extract_num_from_imgid=(not args.not_extract_num_from_imgid),
+            extract_num_from_imgid=not args.not_extract_num_from_imgid,
         )
 
 
