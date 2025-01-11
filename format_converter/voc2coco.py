@@ -2,7 +2,6 @@
 Convert VOC format dataset to COCO.
 Reference 1: https://github.com/autogluon/autogluon/blob/master/multimodal/src/autogluon/multimodal/utils/object_detection.py
 Reference 2: https://github.com/yukkyo/voc2coco/blob/master/voc2coco.py
-With changes:
 1. id stored as int by default
 2. provide only root_dir, and corresponding simplification
 3. Use defusedxml.ElementTree for security concern
@@ -19,12 +18,15 @@ To use:
 import argparse
 import json
 import os
-import random
 import re
 from typing import Dict, List
 
 import defusedxml.ElementTree as ET
 from tqdm import tqdm
+
+
+DEFAULT_EXT = ".jpg"
+MIN_AREA = 4
 
 
 def dump_voc_classes(voc_annotation_path: str, voc_class_names_output_path: str = None) -> [str]:
@@ -104,7 +106,7 @@ def get_annpaths(root_dir: str) -> Dict:
     return ann_paths
 
 
-def get_image_info(annotation_root, ext, extract_num_from_imgid=True):
+def get_image_info(annotation_root, extract_num_from_imgid=True):
     path = annotation_root.findtext("path")
     if path is None:
         filename = annotation_root.findtext("filename")
@@ -112,7 +114,7 @@ def get_image_info(annotation_root, ext, extract_num_from_imgid=True):
         filename = os.path.basename(path)
     img_name = os.path.basename(filename)
     if not img_name[-4:] in [".jpg", ".png"]:
-        img_name = img_name + ext
+        img_name = img_name + DEFAULT_EXT
     img_id = os.path.splitext(img_name)[0]
     if extract_num_from_imgid and isinstance(img_id, str):
         img_id = int("".join(re.findall(r"\d+", img_id)))
@@ -121,11 +123,16 @@ def get_image_info(annotation_root, ext, extract_num_from_imgid=True):
     width = int(size.findtext("width"))
     height = int(size.findtext("height"))
 
-    image_info = {"file_name": os.path.join("JPEGImages", img_name), "height": height, "width": width, "id": img_id}
+    image_info = {
+        "file_name": os.path.join("JPEGImages", img_name),
+        "height": height,
+        "width": width,
+        "id": img_id,
+    }
     return image_info
 
 
-def get_coco_annotation_from_obj(obj, label2id, min_area):
+def get_coco_annotation_from_obj(obj, label2id):
     label = obj.findtext("name")
     assert label in label2id, f"Error: {label} is not in label2id!"
     category_id = label2id[label]
@@ -139,7 +146,7 @@ def get_coco_annotation_from_obj(obj, label2id, min_area):
     o_width = xmax - xmin
     o_height = ymax - ymin
     area = o_width * o_height
-    if area <= min_area:
+    if area <= MIN_AREA:
         return {}
     ann = {
         "area": o_width * o_height,
@@ -156,8 +163,6 @@ def convert_xmls_to_cocojson(
     root_dir: str,
     annotation_paths: List[str],
     label2id: Dict[str, int],
-    ext: str,
-    min_area: int,
     output_jsonpath: str,
     extract_num_from_imgid: bool = True,
 ):
@@ -169,12 +174,12 @@ def convert_xmls_to_cocojson(
         ann_tree = ET.parse(os.path.join(root_dir, a_path))
         ann_root = ann_tree.getroot()
 
-        img_info = get_image_info(annotation_root=ann_root, ext=ext, extract_num_from_imgid=extract_num_from_imgid)
+        img_info = get_image_info(annotation_root=ann_root, extract_num_from_imgid=extract_num_from_imgid)
         img_id = img_info["id"]
 
         valid_image = False  # remove image without bounding box to speed up mAP calculation
         for obj in ann_root.findall("object"):
-            ann = get_coco_annotation_from_obj(obj=obj, label2id=label2id, min_area=min_area)
+            ann = get_coco_annotation_from_obj(obj=obj, label2id=label2id)
             if ann:
                 ann.update({"image_id": img_id, "id": bnd_id})
                 output_json_dict["annotations"].append(ann)
@@ -200,17 +205,17 @@ def main():
     parser = argparse.ArgumentParser(description="This script converts voc format xmls to coco format json")
     parser.add_argument("--root_dir", type=str, default="../VOC", help="path to VOC format dataset root")
     parser.add_argument("--ext", type=str, default=".jpg", help="extension for image file (.jpg or .png)")
-    parser.add_argument("--min_area", type=int, default=4, help="min area for a valid bounding box")
+    parser.add_argument("--min_area", type=str, default=4, help="min area for a valid bounding box")
     parser.add_argument(
         "--not_extract_num_from_imgid", action="store_true", help="Extract image number from the image filename"
     )
     args = parser.parse_args()
 
-    ext = args.ext
-    assert ext in [".jpg", ".png"]
+    DEFAULT_EXT = args.ext
+    assert DEFAULT_EXT in [".jpg", ".png"]
 
-    min_area = args.min_area
-    assert min_area >= 0
+    MIN_AREA = args.min_area
+    assert MIN_AREA >= 0
 
     if not args.root_dir:
         raise ValueError("Must specify the root of the VOC format dataset.")
@@ -231,8 +236,6 @@ def main():
         convert_xmls_to_cocojson(
             root_dir=args.root_dir,
             annotation_paths=ann_paths[mode],
-            ext=ext,
-            min_area=min_area,
             label2id=label2id,
             output_jsonpath=output_path_fmt % mode,
             extract_num_from_imgid=(not args.not_extract_num_from_imgid),
