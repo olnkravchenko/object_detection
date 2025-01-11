@@ -127,7 +127,7 @@ def get_image_info(annotation_root, ext, extract_num_from_imgid=True):
 
 def get_coco_annotation_from_obj(obj, label2id, min_area):
     label = obj.findtext("name")
-    assert label in label2id, f"Error: {label} is not in label2id !"
+    assert label in label2id, f"Error: {label} is not in label2id!"
     category_id = label2id[label]
     bndbox = obj.find("bndbox")
     xmin = int(float(bndbox.findtext("xmin")))
