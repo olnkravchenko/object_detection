@@ -7,10 +7,6 @@ Reference 2: https://github.com/yukkyo/voc2coco/blob/master/voc2coco.py
 3. Use defusedxml.ElementTree for security concern
 4. remove invalid images (without bounding boxes or too small bounding boxes)
 5. this script doesn't convert segmentation
-
-To use:
-    If you'd like to use the dataset provided train/val/test splits:
-        python3 -m autogluon.multimodal.cli.voc2coco --root_dir <root_dir>
 """
 
 import argparse
