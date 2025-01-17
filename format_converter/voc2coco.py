@@ -10,9 +10,10 @@ Reference 2: https://github.com/yukkyo/voc2coco/blob/master/voc2coco.py
 
 Example to run:
 python voc2coco.py --voc_ann_dir /path/to/input/voc/Annotations --coco_ann_dir /path/to/output/coco/annotations --labels_file /path/to/output/labels.txt --min_area 4 --output_form both --voc_ann_ids_dir /path/to/input/voc/ImageSets/Main
-or using the default values:
-python voc2coco.py --voc_ann_dir /path/to/input/voc/Annotations
 
+or using the default values:
+
+python voc2coco.py --voc_ann_dir /path/to/input/voc/Annotations
 """
 
 import argparse
@@ -26,6 +27,10 @@ from tqdm import tqdm
 
 
 ALLOWED_EXTENSIONS = [".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"]
+
+JOINED = "joined"
+BOTH = "both"
+SPLIT = "split"
 
 
 def dump_voc_classes(voc_annotation_path: str, voc_class_names_output_path: str = None) -> [str]:
@@ -244,7 +249,7 @@ def main():
 
     label2id = get_class2id(classes=classes)
 
-    if output_form in ["split", "both"]:
+    if output_form in [SPLIT, BOTH]:
         output_path_fmt = os.path.join(coco_ann_dir, "%s_cocoformat.json")
         ann_files = get_ann_files(ann_ids_dir=voc_ann_ids_dir)
         for mode, ann_file in ann_files.items():
@@ -256,7 +261,7 @@ def main():
                 min_area=min_area,
             )
 
-    if output_form in ["joined", "both"]:
+    if output_form in [JOINED, BOTH]:
         ann_files = [
             ann_filename
             for ann_filename in os.listdir(voc_ann_dir)
