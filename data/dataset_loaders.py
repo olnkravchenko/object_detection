@@ -1,7 +1,7 @@
 from torchvision.datasets import CocoDetection, wrap_dataset_for_transforms_v2
 
 
-class MSCOCODatasetLoader(CocoDetection):
+class MSCOCODatasetLoader:
     def __init__(self, img_folder: str, ann_file: str):
         self.img_folder = img_folder
         self.ann_file = ann_file
