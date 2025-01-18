@@ -18,7 +18,7 @@ def criteria_builder(stop_loss, stop_epoch):
     def criteria_satisfied(current_loss, current_epoch):
         if stop_loss is not None and current_loss < stop_loss:
             return True
-        if stop_epoch is not None and current_epoch > stop_epoch:
+        if stop_epoch is not None and current_epoch >= stop_epoch:
             return True
         return False
 
@@ -51,9 +51,9 @@ def main(config_path: str = None):
     train(model_conf, train_conf, data_conf)
 
 
-def calculate_loss(model, data, batch_size=32):
+def calculate_loss(model, data, batch_size=32, num_workers=0):
     batch_generator = torch.utils.data.DataLoader(
-        data, num_workers=0, batch_size=batch_size, shuffle=False
+        data, num_workers=num_workers, batch_size=batch_size, shuffle=False
     )
     loss = 0.0
     count = 0
@@ -80,16 +80,16 @@ def train(model_conf, train_conf, data_conf):
     print(f"Selected validation image_set: {image_set_val}")
 
     dataset_val = torchvision.datasets.VOCDetection(
-        root=f"../VOC{image_set_val}",
+        root=f"../VOC",
         year="2007",
-        image_set=image_set_train,
+        image_set=image_set_val,
         download=data_conf["is_download"],
     )
     dataset_train = torchvision.datasets.VOCDetection(
-        root=f"../VOC{image_set_train}",
+        root=f"../VOC",
         year="2007",
         image_set=image_set_train,
-        download=data_conf["is_download"],
+        download=False,
     )
 
     transform = transforms.Compose(
@@ -104,27 +104,24 @@ def train(model_conf, train_conf, data_conf):
 
     dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
     dataset_train = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_train)
-    torch_dataset_val = Dataset(
-        dataset=dataset_val, transformation=transform, encoder=encoder
-    )
-    torch_dataset_train = Dataset(
-        dataset=dataset_val, transformation=transform, encoder=encoder
+    val_data = Dataset(dataset=dataset_val, transformation=transform, encoder=encoder)
+    train_data = Dataset(
+        dataset=dataset_train, transformation=transform, encoder=encoder
     )
     tag = "train"
     batch_size = train_conf["batch_size"]
     train_subset_len = train_conf.get("subset_len")
     val_subset_len = train_conf.get("val_subset_len")
+    num_workers = train_conf.get("num_workers", 0)
 
     if train_conf["is_overfit"]:
         tag = "overfit"
         assert train_subset_len is not None
         batch_size = train_subset_len
     if train_subset_len is not None:
-        training_data = torch.utils.data.Subset(
-            torch_dataset_train, range(train_subset_len)
-        )
+        train_data = torch.utils.data.Subset(train_data, range(train_subset_len))
     if val_subset_len is not None:
-        val_data = torch.utils.data.Subset(torch_dataset_val, range(val_subset_len))
+        val_data = torch.utils.data.Subset(val_data, range(val_subset_len))
 
     criteria_satisfied = criteria_builder(*train_conf["stop_criteria"].values())
 
@@ -151,7 +148,7 @@ def train(model_conf, train_conf, data_conf):
     model.train(True)
 
     batch_generator_train = torch.utils.data.DataLoader(
-        training_data, num_workers=0, batch_size=batch_size, shuffle=False
+        train_data, num_workers=num_workers, batch_size=batch_size, shuffle=False
     )
 
     epoch = 1
@@ -180,8 +177,10 @@ def train(model_conf, train_conf, data_conf):
             print(f"Epoch {epoch}, batch {i}, loss={loss:.3f}, lr={curr_lr}")
 
         if calculate_epoch_loss:
-            train_loss.append(calculate_loss(model, training_data, batch_size))
-            val_loss.append(calculate_loss(model, val_data, batch_size))
+            train_loss.append(
+                calculate_loss(model, train_data, batch_size, num_workers)
+            )
+            val_loss.append(calculate_loss(model, val_data, batch_size, num_workers))
             print(f"= = = = = = = = = =")
             print(
                 f"Epoch {epoch} train loss = {train_loss[-1]}, val loss = {val_loss[-1]}"
@@ -191,7 +190,9 @@ def train(model_conf, train_conf, data_conf):
         if criteria_satisfied(loss, epoch):
             break
 
-        scheduler.step(loss_dict["loss"])
+        check_loss_value = train_loss[-1] if calculate_epoch_loss else loss
+
+        scheduler.step(check_loss_value)
         epoch += 1
 
     save_model(
