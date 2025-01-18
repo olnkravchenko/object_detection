@@ -31,8 +31,9 @@
   },
   "data": {
     "is_download": false,
+    "class_amount": 20,
     "image_set": "val",
-    "images_folder": "../COCO/val2017",
-    "ann_file": "../COCO/annotations/instances_val2017.json"
+    "images_folder": "../VOC/VOCdevkit/VOC2007/JPEGImages",
+    "ann_file": "../VOC_COCO/pascal_val2007.json"
   }
 }

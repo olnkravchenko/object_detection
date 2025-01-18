@@ -63,7 +63,9 @@ def train(model_conf, train_conf, data_conf):
             transforms.ToDtype(torch.float32, scale=True),
         ]
     )
-    encoder = CenternetEncoder(IMG_HEIGHT, IMG_WIDTH)
+    encoder = CenternetEncoder(
+        IMG_HEIGHT, IMG_WIDTH, n_classes=data_conf["class_amount"]
+    )
 
     torch_dataset = Dataset(
         dataset=dataset_loader.get_dataset(),
@@ -86,7 +88,9 @@ def train(model_conf, train_conf, data_conf):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ModelBuilder(
+        filters_size=model_conf["head"]["filters_size"],
         alpha=model_conf["alpha"],
+        class_number=data_conf["class_amount"],
         backbone=model_conf["backbone"]["name"],
         backbone_weights=model_conf["backbone"]["pretrained_weights"],
     ).to(device)
@@ -146,4 +150,4 @@ def train(model_conf, train_conf, data_conf):
 
 
 if __name__ == "__main__":
-    main()
+    main("config_example.json")
