@@ -13,6 +13,7 @@ class ModelBuilder(nn.Module):
 
     def __init__(
         self,
+        filters_size: list,
         alpha=1.0,
         class_number=20,
         backbone: str = "default",
@@ -22,7 +23,9 @@ class ModelBuilder(nn.Module):
         self.class_number = class_number
         self.backbone = create_backbone(backbone, alpha, backbone_weights)
         self.head = Head(
-            backbone_output_filters=self.backbone.filters, class_number=class_number
+            backbone_output_filters=self.backbone.filters,
+            filters_size=filters_size,
+            class_number=class_number,
         )
         self.loss = CenternetTTFLoss(
             # todo (AA): is this "4" below the down_ratio parameter?

@@ -10,7 +10,9 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, index):
         img, lbl = self._dataset[index]
-        img_, bboxes_, labels_ = self._transformation(img, lbl["boxes"], lbl["labels"])
+        img_, bboxes_, labels_ = self._transformation(
+            img, lbl.get("boxes", []), lbl.get("labels", [])
+        )
         lbl_encoded = self._encoder(bboxes_, labels_)
         return img_, torch.from_numpy(lbl_encoded)
 
