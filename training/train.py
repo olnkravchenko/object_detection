@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+import pandas as pd
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
@@ -10,10 +11,12 @@ from models.centernet import ModelBuilder
 from training.encoder import CenternetEncoder
 from utils.config import IMG_HEIGHT, IMG_WIDTH, load_config
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def criteria_builder(stop_loss, stop_epoch):
     def criteria_satisfied(current_loss, current_epoch):
-        if stop_loss is not None and current_loss < 1.0:
+        if stop_loss is not None and current_loss < stop_loss:
             return True
         if stop_epoch is not None and current_epoch > stop_epoch:
             return True
@@ -48,14 +51,44 @@ def main(config_path: str = None):
     train(model_conf, train_conf, data_conf)
 
 
+def calculate_loss(model, data, batch_size=32):
+    batch_generator = torch.utils.data.DataLoader(
+        data, num_workers=0, batch_size=batch_size, shuffle=False
+    )
+    loss = 0.0
+    count = 0
+    with torch.no_grad() as ng:
+        for i, data in enumerate(batch_generator):
+            input_data, gt_data = data
+            input_data = input_data.to(device).contiguous()
+
+            gt_data = gt_data.to(device)
+            gt_data.requires_grad = False
+
+            loss_dict = model(input_data, gt=gt_data)
+            curr_loss = loss_dict["loss"].item()
+            curr_count = input_data.shape[0]
+            loss += curr_loss * curr_count
+            count += curr_count
+    return loss / count
+
+
 def train(model_conf, train_conf, data_conf):
-    image_set = "val" if train_conf["is_overfit"] else "train"
-    print(f"Selected image_set: {image_set}")
+    image_set_train = "val" if train_conf["is_overfit"] else "train"
+    image_set_val = "test" if train_conf["is_overfit"] else "val"
+    print(f"Selected training image_set: {image_set_train}")
+    print(f"Selected validation image_set: {image_set_val}")
 
     dataset_val = torchvision.datasets.VOCDetection(
-        root="../VOC",
+        root=f"../VOC{image_set_val}",
         year="2007",
-        image_set=image_set,
+        image_set=image_set_train,
+        download=data_conf["is_download"],
+    )
+    dataset_train = torchvision.datasets.VOCDetection(
+        root=f"../VOC{image_set_train}",
+        year="2007",
+        image_set=image_set_train,
         download=data_conf["is_download"],
     )
 
@@ -70,23 +103,31 @@ def train(model_conf, train_conf, data_conf):
     encoder = CenternetEncoder(IMG_HEIGHT, IMG_WIDTH)
 
     dataset_val = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_val)
-    torch_dataset = Dataset(
+    dataset_train = torchvision.datasets.wrap_dataset_for_transforms_v2(dataset_train)
+    torch_dataset_val = Dataset(
+        dataset=dataset_val, transformation=transform, encoder=encoder
+    )
+    torch_dataset_train = Dataset(
         dataset=dataset_val, transformation=transform, encoder=encoder
     )
     tag = "train"
-    training_data = torch_dataset
     batch_size = train_conf["batch_size"]
+    train_subset_len = train_conf.get("subset_len")
+    val_subset_len = train_conf.get("val_subset_len")
 
     if train_conf["is_overfit"]:
         tag = "overfit"
+        assert train_subset_len is not None
+        batch_size = train_subset_len
+    if train_subset_len is not None:
         training_data = torch.utils.data.Subset(
-            torch_dataset, range(train_conf["subset_len"])
+            torch_dataset_train, range(train_subset_len)
         )
-        batch_size = train_conf["subset_len"]
+    if val_subset_len is not None:
+        val_data = torch.utils.data.Subset(torch_dataset_val, range(val_subset_len))
 
     criteria_satisfied = criteria_builder(*train_conf["stop_criteria"].values())
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ModelBuilder(
         filters_size=model_conf["head"]["filters_size"],
         alpha=model_conf["alpha"],
@@ -109,16 +150,20 @@ def train(model_conf, train_conf, data_conf):
 
     model.train(True)
 
-    batch_generator = torch.utils.data.DataLoader(
+    batch_generator_train = torch.utils.data.DataLoader(
         training_data, num_workers=0, batch_size=batch_size, shuffle=False
     )
 
     epoch = 1
-    get_desired_loss = False
+
+    train_loss = []
+    val_loss = []
+
+    calculate_epoch_loss = train_conf.get("calculate_epoch_loss")
 
     while True:
         loss_dict = {}
-        for i, data in enumerate(batch_generator):
+        for i, data in enumerate(batch_generator_train):
             input_data, gt_data = data
             input_data = input_data.to(device).contiguous()
 
@@ -134,6 +179,15 @@ def train(model_conf, train_conf, data_conf):
             curr_lr = scheduler.get_last_lr()[0]
             print(f"Epoch {epoch}, batch {i}, loss={loss:.3f}, lr={curr_lr}")
 
+        if calculate_epoch_loss:
+            train_loss.append(calculate_loss(model, training_data, batch_size))
+            val_loss.append(calculate_loss(model, val_data, batch_size))
+            print(f"= = = = = = = = = =")
+            print(
+                f"Epoch {epoch} train loss = {train_loss[-1]}, val loss = {val_loss[-1]}"
+            )
+            print(f"= = = = = = = = = =")
+
         if criteria_satisfied(loss, epoch):
             break
 
@@ -146,6 +200,9 @@ def train(model_conf, train_conf, data_conf):
         tag=tag,
         backbone=model_conf["backbone"]["name"],
     )
+
+    loss_df = pd.DataFrame({"train_loss": train_loss, "val_loss": val_loss})
+    loss_df.to_csv("losses.csv")
 
 
 if __name__ == "__main__":
