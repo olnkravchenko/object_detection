@@ -19,12 +19,11 @@ python voc2coco.py --voc_ann_dir /path/to/input/voc/Annotations
 import argparse
 import json
 import os
-from typing import Dict, List
 from pathlib import Path
+from typing import Dict, List
 
 import defusedxml.ElementTree as ET
 from tqdm import tqdm
-
 
 ALLOWED_EXTENSIONS = [".jpg", ".png", ".jpeg", ".JPG", ".PNG", ".JPEG"]
 
@@ -33,7 +32,9 @@ BOTH = "both"
 SPLIT = "split"
 
 
-def dump_voc_classes(voc_annotation_path: str, voc_class_names_output_path: str = None) -> [str]:
+def dump_voc_classes(
+    voc_annotation_path: str, voc_class_names_output_path: str = None
+) -> [str]:
     """
     Reads annotations for a dataset in VOC format.
     Then
@@ -170,9 +171,14 @@ def convert_xmls_to_cocojson(
     annotation_files: List[str],
     label2id: Dict[str, int],
     output_jsonpath: str,
-    min_area: int
+    min_area: int,
 ):
-    output_json_dict = {"images": [], "type": "instances", "annotations": [], "categories": []}
+    output_json_dict = {
+        "images": [],
+        "type": "instances",
+        "annotations": [],
+        "categories": [],
+    }
     bnd_id = 1  # START_BOUNDING_BOX_ID
     print("Start converting!")
     for a_file in tqdm(annotation_files):
@@ -188,9 +194,13 @@ def convert_xmls_to_cocojson(
             continue
         img_id = img_info["id"]
 
-        valid_image = False  # remove image without bounding box to speed up mAP calculation
+        valid_image = (
+            False  # remove image without bounding box to speed up mAP calculation
+        )
         for obj in ann_root.findall("object"):
-            ann = get_coco_annotation_from_obj(obj=obj, label2id=label2id, min_area=min_area)
+            ann = get_coco_annotation_from_obj(
+                obj=obj, label2id=label2id, min_area=min_area
+            )
             if ann:
                 ann.update({"image_id": img_id, "id": bnd_id})
                 output_json_dict["annotations"].append(ann)
@@ -200,7 +210,9 @@ def convert_xmls_to_cocojson(
         if valid_image:
             output_json_dict["images"].append(img_info)
         else:
-            print(f"Image {img_id} is removed since it does not contain any valid object")
+            print(
+                f"Image {img_id} is removed since it does not contain any valid object"
+            )
 
     for label, label_id in label2id.items():
         category_info = {"supercategory": "none", "id": label_id, "name": label}
@@ -213,18 +225,38 @@ def convert_xmls_to_cocojson(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="This script converts voc format xmls to coco format json")
-    parser.add_argument("voc_ann_dir", type=str, help="path to annotations in VOC format")
-    parser.add_argument("--voc_ann_ids_dir", type=str, default="",
-                        help="path to VOC annotation ids files, if not provided, path relative to voc_ann_dir "
-                             "will be inferred according to the standard file structure of VOC dataset")
-    parser.add_argument("--coco_ann_dir", type=str, default="",
-                        help="path to output annotations in COCO format")
-    parser.add_argument("--labels_file", type=str, default="", help="path to output file with labels")
-    parser.add_argument("--min_area", type=str, default=4, help="min area for a valid bounding box")
-    parser.add_argument("--output_form", type=str, default="joined",
-                        choices=['split', 'joined', 'both'],
-                        help="should we split output annotations by category, join all into one, or generate both?")
+    parser = argparse.ArgumentParser(
+        description="This script converts voc format xmls to coco format json"
+    )
+    parser.add_argument(
+        "voc_ann_dir", type=str, help="path to annotations in VOC format"
+    )
+    parser.add_argument(
+        "--voc_ann_ids_dir",
+        type=str,
+        default="",
+        help="path to VOC annotation ids files, if not provided, path relative to voc_ann_dir "
+        "will be inferred according to the standard file structure of VOC dataset",
+    )
+    parser.add_argument(
+        "--coco_ann_dir",
+        type=str,
+        default="",
+        help="path to output annotations in COCO format",
+    )
+    parser.add_argument(
+        "--labels_file", type=str, default="", help="path to output file with labels"
+    )
+    parser.add_argument(
+        "--min_area", type=str, default=4, help="min area for a valid bounding box"
+    )
+    parser.add_argument(
+        "--output_form",
+        type=str,
+        default="joined",
+        choices=["split", "joined", "both"],
+        help="should we split output annotations by category, join all into one, or generate both?",
+    )
 
     args = parser.parse_args()
 
@@ -265,8 +297,8 @@ def main():
         ann_files = [
             ann_filename
             for ann_filename in os.listdir(voc_ann_dir)
-            if os.path.isfile(os.path.join(voc_ann_dir, ann_filename)) and
-               os.path.splitext(ann_filename)[1] == ".xml"
+            if os.path.isfile(os.path.join(voc_ann_dir, ann_filename))
+            and os.path.splitext(ann_filename)[1] == ".xml"
         ]
         convert_xmls_to_cocojson(
             voc_ann_dir=voc_ann_dir,
