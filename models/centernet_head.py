@@ -6,12 +6,18 @@ import torch.nn.functional as F
 
 
 class Head(nn.Module):
-    def __init__(self, backbone_output_filters, class_number=20):
+
+    def __init__(
+        self,
+        backbone_output_filters,
+        filters_size: list,
+        class_number=20,
+    ):
         super().__init__()
         self.connection_num = 3
         self.class_number = class_number
         self.backbone_output_filters = backbone_output_filters
-        self.filters = [128, 64, 32]
+        self.filters = filters_size
         head_filters = [self.backbone_output_filters[-1]] + self.filters
 
         for i, filter_num in enumerate(self.filters):

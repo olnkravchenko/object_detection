@@ -5,6 +5,13 @@
     "backbone": {
       "name": "efficientnet_b0",
       "pretrained_weights": "DEFAULT"
+    },
+    "head": {
+      "filters_size": [
+        128,
+        64,
+        32
+      ]
     }
   },
   "train": {

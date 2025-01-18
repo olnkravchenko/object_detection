@@ -88,6 +88,7 @@ def train(model_conf, train_conf, data_conf):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ModelBuilder(
+        filters_size=model_conf["head"]["filters_size"],
         alpha=model_conf["alpha"],
         backbone=model_conf["backbone"]["name"],
         backbone_weights=model_conf["backbone"]["pretrained_weights"],
