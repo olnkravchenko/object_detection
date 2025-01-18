@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 import torchvision
 import torchvision.transforms.v2 as transforms
+
 from data.dataset import Dataset
 from data.dataset_loaders import MSCOCODatasetLoader
 from models.centernet import ModelBuilder
@@ -29,9 +30,7 @@ def save_model(model, weights_path: str = None, **kwargs):
     cur_dir = Path(__file__).resolve().parent
 
     checkpoint_filename = (
-        cur_dir.parent
-        / checkpoints_dir
-        / f"pretrained_weights_{tag}_{backbone}.pt"
+        cur_dir.parent / checkpoints_dir / f"pretrained_weights_{tag}_{backbone}.pt"
     )
 
     torch.save(model.state_dict(), checkpoint_filename)
