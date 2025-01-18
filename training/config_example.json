@@ -23,6 +23,9 @@
     }
   },
   "data": {
-    "is_download": false
+    "is_download": false,
+    "image_set": "val",
+    "images_folder": "../COCO/val2017",
+    "ann_file": "../COCO/annotations/instances_val2017.json"
   }
 }
