@@ -10,7 +10,6 @@ class Dataset(data.Dataset):
 
     def __getitem__(self, index):
         img, lbl = self._dataset[index]
-        print(lbl)
         img_, bboxes_, labels_ = self._transformation(
             img, lbl.get("boxes", []), lbl.get("labels", [])
         )
